@@ -6,36 +6,36 @@ from assetmgr.assetExt import AssetExtractor
 
 class AssetManager:
     def __init__(self, db_name='AssetDB.db'):
-        self.thisDB = _AssetDatabase(db_name)
+        self.asset_DB = _AssetDatabase(db_name)
         self.assetExtraction = AssetExtractor()
 
     def pullAlpacaAssets(self):
         listAlpAssets = self.assetExtraction.getAllAlpacaAssets()
 
         for individualAsset in listAlpAssets:
-            assetDb = self.thisDB.returnAsset(individualAsset['symbol'])
+            assetDb = self.asset_DB.returnAsset(individualAsset['symbol'])
             listParameters = (individualAsset['symbol'], individualAsset['name'],
                               individualAsset['exchange'], individualAsset['status'] != 'active',
                               individualAsset['shortable'], not individualAsset['tradable'])
 
             if not assetDb:
-                self.thisDB.insertAsset(*listParameters)
+                self.asset_DB.insertAsset(*listParameters)
             else:
-                self.thisDB.updateAsset(*listParameters)
+                self.asset_DB.updateAsset(*listParameters)
 
     def pullPyNseAssets(self):
         listPyNseAssets, _ = self.assetExtraction.getAllPyNSEAssets(threading=True)
 
         for individualAsset in listPyNseAssets:
-            assetDb = self.thisDB.returnAsset(individualAsset['symbol'])
+            assetDb = self.asset_DB.returnAsset(individualAsset['symbol'])
             listParameters = (individualAsset['symbol'], individualAsset['companyName'],
                               'NSE', individualAsset['isDelisted'],
                               individualAsset['isSLBSec'], individualAsset['isSuspended'])
 
             if not assetDb:
-                self.thisDB.insertAsset(*listParameters)
+                self.asset_DB.insertAsset(*listParameters)
             else:
-                self.thisDB.updateAsset(*listParameters)
+                self.asset_DB.updateAsset(*listParameters)
 
 class _AssetDatabase:
     def __init__(self, db_name):

@@ -2,7 +2,7 @@ from dataset.table import Table
 from assetmgr.assetmgr_base import AssetManager
 
 # Use Test_DB.db as the name (otherwise it will override Asset_DB.db
-asset_db_obj = AssetManager('Test_DB.db').thisDB
+asset_db_obj = AssetManager('Test_DB.db').asset_DB
 
 
 def test_listTables():
