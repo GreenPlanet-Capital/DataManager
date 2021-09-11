@@ -90,6 +90,7 @@ class _AssetDatabase:
         return list(self.assetTable.find(exchangeName=exchangeName, isDelisted=isDelisted, isSuspended=isSuspended))
 
     def returnAllTradableSymbols(self, isDelisted=False, isSuspended=False):
+        #TODO Can this be implemented in a better way?
         return [row['stockSymbol'] for row in self.assetTable.find(isDelisted=isDelisted, isSuspended=isSuspended)]
     
     def returnColumns(self):
