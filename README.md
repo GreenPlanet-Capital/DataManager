@@ -1,7 +1,7 @@
 # Data Manager
 ## Setup
 ### Create a assetConfig.cfg
-- Create an assetConfig.cfg file in the root directory DataManager
+- Create an assetConfig.cfg file in the directory called config_files
 - Insert your API Key and API Secret Key here as follows:
 ~~~
 [Alpaca]
