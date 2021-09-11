@@ -50,15 +50,6 @@ class _AssetDatabase:
     def close_database(self):
         self.assetDb.close()
 
-    def begin_transaction(self):  # can be removed
-        self.assetDb.begin()
-
-    def commit_transaction(self):  # can be removed
-        self.assetDb.commit()
-
-    def rollback_transaction(self):
-        self.assetDb.rollback()
-
     def createAssetTable(self):
         self.assetTable = self.assetDb.create_table('Assets', primary_id='stockSymbol',
                                                     primary_type=self.assetDb.types.text)
@@ -77,7 +68,7 @@ class _AssetDatabase:
                      isDelisted=isDelisted, isShortable=isShortable, isSuspended=isSuspended))
             self.assetDb.commit()
         except Exception as exp:
-            self.rollback_transaction()
+            self.assetDb.rollback()
 
     def updateAsset(self, stockSymbol, companyName, exchangeName, isDelisted, isShortable, isSuspended):
         self.assetDb.begin()
@@ -87,7 +78,7 @@ class _AssetDatabase:
                      isDelisted=isDelisted, isShortable=isShortable, isSuspended=isSuspended), ['stockSymbol'])
             self.assetDb.commit()
         except Exception as exp:
-            self.rollback_transaction()
+            self.assetDb.rollback()
 
     def returnAllAssets(self):
         return list(self.assetTable.all())
@@ -98,6 +89,9 @@ class _AssetDatabase:
     def returnExchangeBucket(self, exchangeName, isDelisted=False, isSuspended=False):
         return list(self.assetTable.find(exchangeName=exchangeName, isDelisted=isDelisted, isSuspended=isSuspended))
 
+    def returnAllTradableSymbols(self, isDelisted=False, isSuspended=False):
+        return [row['stockSymbol'] for row in self.assetTable.find(isDelisted=isDelisted, isSuspended=isSuspended)]
+    
     def returnColumns(self):
         return self.assetTable.columns
 
