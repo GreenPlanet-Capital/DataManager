@@ -1,3 +1,4 @@
 git+https://github.com/StreamAlpha/pynse.git
 dataset
 pytest
+iexfinance
