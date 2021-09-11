@@ -3,6 +3,7 @@ import sys
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
 import dataset
 from assetmgr.assetExt import AssetExtractor
+from datetime import datetime
 
 class AssetManager:
     def __init__(self, db_name='AssetDB.db'):
@@ -37,6 +38,24 @@ class AssetManager:
             else:
                 self.asset_DB.updateAsset(*listParameters)
 
+    def insert_assets_into_db(self, asset_data):
+        returned_Asset = self.asset_DB.returnAsset(asset_data['symbol'])
+        if not returned_Asset:
+                self.asset_DB.insertAsset(asset_data)
+        else:
+            self.asset_DB.updateAsset(asset_data)
+    
+    def update_iex_db(self):
+        list_of_assets = self.assetExtraction.getAllIEXCloudAssets()
+        for individualAsset in list_of_assets:
+            asset_data = {'symbol': individualAsset['symbol'], 'companyName': individualAsset['name'],
+                              'exchangeName': individualAsset['exchange'], 'dateLastUpdated': datetime.utcnow().isoformat(),
+                              'region': individualAsset['region'], 'currency':  individualAsset['currency']}
+            self.insert_assets_into_db(asset_data)
+            
+
+
+
 class _AssetDatabase:
     def __init__(self, db_name):
         self.assetDb = dataset.connect(f'sqlite:///{os.path.join("tempDir", db_name)}')
@@ -56,26 +75,25 @@ class _AssetDatabase:
         self.assetTable.create_column('stockSymbol', self.assetDb.types.text)
         self.assetTable.create_column('companyName', self.assetDb.types.text)
         self.assetTable.create_column('exchangeName', self.assetDb.types.text)
+        self.assetTable.create_column('dateLastUpdated', self.assetDb.types.text)
+        self.assetTable.create_column('region', self.assetDb.types.text)
+        self.assetTable.create_column('currency', self.assetDb.types.text)
         self.assetTable.create_column('isDelisted', self.assetDb.types.boolean)
         self.assetTable.create_column('isShortable', self.assetDb.types.boolean)
         self.assetTable.create_column('isSuspended', self.assetDb.types.boolean)
 
-    def insertAsset(self, stockSymbol, companyName, exchangeName, isDelisted, isShortable, isSuspended):
+    def insertAsset(self, asset_data):
         self.assetDb.begin()
         try:
-            self.assetTable.insert(
-                dict(stockSymbol=stockSymbol, companyName=companyName, exchangeName=exchangeName,
-                     isDelisted=isDelisted, isShortable=isShortable, isSuspended=isSuspended))
+            self.assetTable.insert(asset_data)
             self.assetDb.commit()
         except Exception as exp:
             self.assetDb.rollback()
 
-    def updateAsset(self, stockSymbol, companyName, exchangeName, isDelisted, isShortable, isSuspended):
+    def updateAsset(self, asset_data):
         self.assetDb.begin()
         try:
-            self.assetTable.update(
-                dict(stockSymbol=stockSymbol, companyName=companyName, exchangeName=exchangeName,
-                     isDelisted=isDelisted, isShortable=isShortable, isSuspended=isSuspended), ['stockSymbol'])
+            self.assetTable.update(asset_data, ['stockSymbol'])
             self.assetDb.commit()
         except Exception as exp:
             self.assetDb.rollback()
@@ -99,5 +117,4 @@ class _AssetDatabase:
 
 if __name__ == '__main__':
     mgr = AssetManager()
-    mgr.pullAlpacaAssets()
-    mgr.pullPyNseAssets()
+    mgr.update_iex_db()
