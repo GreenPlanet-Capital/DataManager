@@ -16,7 +16,7 @@ def test_listTables():
 
 
 def test_listColumns():
-    assert len(asset_db_obj.returnColumns()) == 6
+    assert len(asset_db_obj.returnColumns()) == 9
 
 
 def test_loadTable():
@@ -24,18 +24,18 @@ def test_loadTable():
 
 
 def test_columns():
-    assert asset_db_obj.assetDb.load_table(table_name='Assets').columns == ['stockSymbol', 'companyName',
-                                                                            'exchangeName', 'isDelisted', 'isShortable',
+    assert asset_db_obj.assetDb.load_table(table_name='Assets').columns == ['stockSymbol', 'companyName', 
+                                                                            'exchangeName', 'dateLastUpdated',
+                                                                            'region', 'currency', 
+                                                                            'isDelisted', 'isShortable', 
                                                                             'isSuspended']
 
 
 def test_insertAsset():
-    asset_db_obj.insertAsset('TEST_SYMBOL', 'TEST_COMPANY', 'TEST_EXCHANGE', True, False, True)
+    asset_db_obj.insertAsset({'stockSymbol': 'TEST_SYMBOL', 'companyName': 'TEST_COMPANY', 'exchangeName': 'TEST_EXCHANGE', 'isShortable': True, 'isDelisted': False, 'isSuspended': True})
     listItems = list(asset_db_obj.returnAsset('TEST_SYMBOL').items())
 
-    assert listItems == [('stockSymbol', 'TEST_SYMBOL'), ('companyName', 'TEST_COMPANY'),
-                         ('exchangeName', 'TEST_EXCHANGE'), ('isDelisted', True), ('isShortable', False),
-                         ('isSuspended', True)]
+    assert listItems == [('stockSymbol', 'TEST_SYMBOL'), ('companyName', 'TEST_COMPANY'), ('exchangeName', 'TEST_EXCHANGE'), ('dateLastUpdated', None), ('region', None), ('currency', None), ('isDelisted', False), ('isShortable', True), ('isSuspended', True)]
 
 
 # Always use this as the last test

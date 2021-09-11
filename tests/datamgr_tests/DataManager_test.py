@@ -15,7 +15,7 @@ def test_create_stock_data_table():
     assert main_table_manager.create_stock_data_table()==None
 
     def test_columns():
-        return main_table_manager.data_DB.load_table(table_name='MainStockData').columns
+        return main_table_manager.db_connection.load_table(table_name='MainStockData').columns
     assert test_columns()==['stockSymbol', 'dataAvailableFrom', 'dataAvailableTo']
 
 def test_listTables():
