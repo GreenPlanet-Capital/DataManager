@@ -9,13 +9,19 @@ def DataManager():
         pass
 
 class _MainTableManager():
-    def __init__(self, db_name = 'Stock_DataDB.db'):
+    def __init__(self, db_name = 'Stock_DataDB.db', testmode=False):
         self.data_DB = dataset.connect(f'sqlite:///{os.path.join("tempDir", db_name)}')
         if len(self.listTables()) == 0:
             self.create_stock_data_table()
         self.mainTable = self.data_DB.load_table(table_name='MainStockData')
+        
+        if testmode:        #TODO To see if there is a better solution to this
+            self.asset_manager = AssetManager('Test_Stock_DataDB.db')
+        else:
+            self.asset_manager = AssetManager()
 
-        self.asset_manager = AssetManager()
+
+        
 
     def create_stock_data_table(self):
         self.mainTable = self.data_DB.create_table(table_name='MainStockData', primary_id='stockSymbol',
