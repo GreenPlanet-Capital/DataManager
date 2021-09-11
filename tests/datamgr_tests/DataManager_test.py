@@ -9,7 +9,7 @@ for loc in glob.glob(os.path.join("tempDir",'Test*.db*')):
   os.remove(loc)
 
 # Use Test_Stock_DataDB.db as the name (otherwise it will overwrite Stock_DataDB.db
-main_table_manager = _MainTableManager('Test_Stock_DataDB.db')
+main_table_manager = _MainTableManager('Test_Stock_DataDB.db', testmode=True)
 
 def test_create_stock_data_table():
     assert main_table_manager.create_stock_data_table()==None
