@@ -14,44 +14,38 @@ class AssetManager:
         listAlpAssets = self.assetExtraction.getAllAlpacaAssets()
 
         for individualAsset in listAlpAssets:
-            assetDb = self.asset_DB.returnAsset(individualAsset['symbol'])
-            listParameters = (individualAsset['symbol'], individualAsset['name'],
-                              individualAsset['exchange'], individualAsset['status'] != 'active',
-                              individualAsset['shortable'], not individualAsset['tradable'])
+            asset_data = {'stockSymbol': individualAsset['symbol'], 'companyName': individualAsset['name'],
+                              'exchangeName': individualAsset['exchange'], 'isDelisted': individualAsset['status'] != 'active',
+                              'isShortable': individualAsset['shortable'], 'isSuspended': not individualAsset['tradable']}
 
-            if not assetDb:
-                self.asset_DB.insertAsset(*listParameters)
-            else:
-                self.asset_DB.updateAsset(*listParameters)
+            self.insert_assets_into_db(asset_data)
 
     def pullPyNseAssets(self):
         listPyNseAssets, _ = self.assetExtraction.getAllPyNSEAssets(threading=True)
 
         for individualAsset in listPyNseAssets:
-            assetDb = self.asset_DB.returnAsset(individualAsset['symbol'])
-            listParameters = (individualAsset['symbol'], individualAsset['companyName'],
-                              'NSE', individualAsset['isDelisted'],
-                              individualAsset['isSLBSec'], individualAsset['isSuspended'])
+            asset_data = {'stockSymbol': individualAsset['symbol'],'companyName': individualAsset['companyName'],
+                              'exchangeName': 'NSE', 'isDelisted': individualAsset['isDelisted'],
+                              'isShortable': individualAsset['isSLBSec'], 'isSuspended': individualAsset['isSuspended']}
 
-            if not assetDb:
-                self.asset_DB.insertAsset(*listParameters)
-            else:
-                self.asset_DB.updateAsset(*listParameters)
-
-    def insert_assets_into_db(self, asset_data):
-        returned_Asset = self.asset_DB.returnAsset(asset_data['symbol'])
-        if not returned_Asset:
-                self.asset_DB.insertAsset(asset_data)
-        else:
-            self.asset_DB.updateAsset(asset_data)
+            self.insert_assets_into_db(asset_data)
     
     def update_iex_db(self):
         list_of_assets = self.assetExtraction.getAllIEXCloudAssets()
         for individualAsset in list_of_assets:
-            asset_data = {'symbol': individualAsset['symbol'], 'companyName': individualAsset['name'],
-                              'exchangeName': individualAsset['exchange'], 'dateLastUpdated': datetime.utcnow().isoformat(),
+            asset_data = {'stockSymbol': individualAsset['symbol'], 'companyName': individualAsset['name'],
+                              'exchangeName': individualAsset['exchange'],
                               'region': individualAsset['region'], 'currency':  individualAsset['currency']}
             self.insert_assets_into_db(asset_data)
+
+    def insert_assets_into_db(self, asset_data):
+        asset_data['dateLastUpdated'] = datetime.utcnow().isoformat()
+        returned_Asset = self.asset_DB.returnAsset(asset_data['stockSymbol'])
+        if not returned_Asset:
+                self.asset_DB.insertAsset(asset_data)
+        else:
+            #TODO Handle for single stock having multiple exchangeNames
+            self.asset_DB.updateAsset(asset_data)
             
 
 
@@ -118,3 +112,4 @@ class _AssetDatabase:
 if __name__ == '__main__':
     mgr = AssetManager()
     mgr.update_iex_db()
+    mgr.pullAlpacaAssets()
