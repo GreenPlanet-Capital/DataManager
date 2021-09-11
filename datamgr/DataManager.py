@@ -24,8 +24,8 @@ class _MainTableManager():
         self.mainTable = self.db_connection.create_table(table_name='MainStockData', primary_id='stockSymbol',
                                                     primary_type=self.db_connection.types.text)
         self.mainTable.create_column('stockSymbol', self.db_connection.types.text)
-        self.mainTable.create_column('dataAvailableFrom', self.db_connection.types.text)
-        self.mainTable.create_column('dataAvailableTo', self.db_connection.types.text)
+        self.mainTable.create_column('dataAvailableFrom', self.db_connection.types.datetime)
+        self.mainTable.create_column('dataAvailableTo', self.db_connection.types.datetime)
 
     def listTables(self):
         return self.db_connection.tables
@@ -42,7 +42,7 @@ class _MainTableManager():
     def return_main_asset_data(self, stockSymbol):
         return self.mainTable.find_one(stockSymbol=stockSymbol)
 
-    def update_stock_symbol_main_table(self, stock_symbol, dataAvailableFrom="", dataAvailableTo=""):
+    def update_stock_symbol_main_table(self, stock_symbol, dataAvailableFrom=None, dataAvailableTo=None):
         self.db_connection.begin()
         try:
             self.mainTable.update(
@@ -67,8 +67,11 @@ class _MainTableManager():
             self.db_connection.rollback()
 
 class _SubTableManager:
-    def __init__(self):
+    def __init__(self, db_name='Stock_DataDB.db', testmode=False):
         self.db_connection = dataset.connect(f'sqlite:///{os.path.join("tempDir", db_name)}')
+
+class _SubTable:
+    pass
 
 if __name__ == '__main__':
     db_connection = _MainTableManager()

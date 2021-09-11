@@ -3,7 +3,7 @@ import sys
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
 import dataset
 from assetmgr.assetExt import AssetExtractor
-from datetime import datetime
+from datetime import datetime, timezone
 
 class AssetManager:
     def __init__(self, db_name='AssetDB.db'):
@@ -39,7 +39,7 @@ class AssetManager:
             self.insert_assets_into_db(asset_data)
 
     def insert_assets_into_db(self, asset_data):
-        asset_data['dateLastUpdated'] = datetime.utcnow().isoformat()
+        asset_data['dateLastUpdated'] = datetime.now(timezone.utc)
         returned_Asset = self.asset_DB.returnAsset(asset_data['stockSymbol'])
         if not returned_Asset:
                 self.asset_DB.insertAsset(asset_data)
@@ -69,7 +69,7 @@ class _AssetDatabase:
         self.assetTable.create_column('stockSymbol', self.assetDb.types.text)
         self.assetTable.create_column('companyName', self.assetDb.types.text)
         self.assetTable.create_column('exchangeName', self.assetDb.types.text)
-        self.assetTable.create_column('dateLastUpdated', self.assetDb.types.text)
+        self.assetTable.create_column('dateLastUpdated', self.assetDb.types.datetime)
         self.assetTable.create_column('region', self.assetDb.types.text)
         self.assetTable.create_column('currency', self.assetDb.types.text)
         self.assetTable.create_column('isDelisted', self.assetDb.types.boolean)
