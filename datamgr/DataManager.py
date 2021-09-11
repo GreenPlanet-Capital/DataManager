@@ -10,10 +10,10 @@ def DataManager():
 
 class _MainTableManager():
     def __init__(self, db_name = 'Stock_DataDB.db', testmode=False):
-        self.data_DB = dataset.connect(f'sqlite:///{os.path.join("tempDir", db_name)}')
+        self.db_connection = dataset.connect(f'sqlite:///{os.path.join("tempDir", db_name)}')
         if len(self.listTables()) == 0:
             self.create_stock_data_table()
-        self.mainTable = self.data_DB.load_table(table_name='MainStockData')
+        self.mainTable = self.db_connection.load_table(table_name='MainStockData')
         
         if testmode:        #TODO To see if there is a better solution to this; this is to prevent _MainTableManager use the real tables while being tested
             self.asset_manager = AssetManager('Test_Stock_DataDB.db')
@@ -21,14 +21,14 @@ class _MainTableManager():
             self.asset_manager = AssetManager()
 
     def create_stock_data_table(self):
-        self.mainTable = self.data_DB.create_table(table_name='MainStockData', primary_id='stockSymbol',
-                                                    primary_type=self.data_DB.types.text)
-        self.mainTable.create_column('stockSymbol', self.data_DB.types.text)
-        self.mainTable.create_column('dataAvailableFrom', self.data_DB.types.text)
-        self.mainTable.create_column('dataAvailableTo', self.data_DB.types.text)
+        self.mainTable = self.db_connection.create_table(table_name='MainStockData', primary_id='stockSymbol',
+                                                    primary_type=self.db_connection.types.text)
+        self.mainTable.create_column('stockSymbol', self.db_connection.types.text)
+        self.mainTable.create_column('dataAvailableFrom', self.db_connection.types.text)
+        self.mainTable.create_column('dataAvailableTo', self.db_connection.types.text)
 
     def listTables(self):
-        return self.data_DB.tables
+        return self.db_connection.tables
 
     def repopulate_all_assets(self):
         symbols_list = self.asset_manager.asset_DB.returnAllTradableSymbols()
@@ -43,32 +43,33 @@ class _MainTableManager():
         return self.mainTable.find_one(stockSymbol=stockSymbol)
 
     def update_stock_symbol_main_table(self, stock_symbol, dataAvailableFrom="", dataAvailableTo=""):
-        self.data_DB.begin()
+        self.db_connection.begin()
         try:
             self.mainTable.update(
                 dict(stockSymbol=stock_symbol, 
                     dataAvailableFrom=dataAvailableFrom,
                     dataAvailableTo=dataAvailableTo),
                     ['stockSymbol'])
-            self.data_DB.commit()
+            self.db_connection.commit()
         except Exception as exp:
-            self.data_DB.rollback()
+            self.db_connection.rollback()
     
     def insert_stock_symbol_main_table(self, stock_symbol):
-        self.data_DB.begin()
+        self.db_connection.begin()
         try:
             self.mainTable.insert(
                 dict(stockSymbol=stock_symbol, 
                     dataAvailableFrom="",
                     dataAvailableTo="")
                     )
-            self.data_DB.commit()
+            self.db_connection.commit()
         except Exception as exp:
-            self.data_DB.rollback()
+            self.db_connection.rollback()
 
 class _SubTableManager:
-    pass
+    def __init__(self):
+        self.db_connection = dataset.connect(f'sqlite:///{os.path.join("tempDir", db_name)}')
 
 if __name__ == '__main__':
-    data_DB = _MainTableManager()
-    print(data_DB.return_main_asset_data('AAPL'))
+    db_connection = _MainTableManager()
+    print(db_connection.return_main_asset_data('AAPL'))
