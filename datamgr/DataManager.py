@@ -20,9 +20,6 @@ class _MainTableManager():
         else:
             self.asset_manager = AssetManager()
 
-
-        
-
     def create_stock_data_table(self):
         self.mainTable = self.data_DB.create_table(table_name='MainStockData', primary_id='stockSymbol',
                                                     primary_type=self.data_DB.types.text)
@@ -68,6 +65,9 @@ class _MainTableManager():
             self.data_DB.commit()
         except Exception as exp:
             self.data_DB.rollback()
+
+class _SubTableManager:
+    pass
 
 if __name__ == '__main__':
     data_DB = _MainTableManager()
