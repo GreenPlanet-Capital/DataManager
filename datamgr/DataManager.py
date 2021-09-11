@@ -16,9 +16,6 @@ class _MainTableManager():
         self.mainTable = self.data_DB.load_table(table_name='MainStockData')
 
         self.asset_manager = AssetManager()
-        
-    def listTables(self):
-        return self.data_DB.tables
 
     def create_stock_data_table(self):
         self.mainTable = self.data_DB.create_table(table_name='MainStockData', primary_id='stockSymbol',
@@ -26,6 +23,9 @@ class _MainTableManager():
         self.mainTable.create_column('stockSymbol', self.data_DB.types.text)
         self.mainTable.create_column('dataAvailableFrom', self.data_DB.types.text)
         self.mainTable.create_column('dataAvailableTo', self.data_DB.types.text)
+
+    def listTables(self):
+        return self.data_DB.tables
 
     def repopulate_all_assets(self):
         symbols_list = self.asset_manager.asset_DB.returnAllTradableSymbols()
@@ -45,8 +45,8 @@ class _MainTableManager():
             self.mainTable.update(
                 dict(stockSymbol=stock_symbol, 
                     dataAvailableFrom=dataAvailableFrom,
-                    dataAvailableTo=dataAvailableTo)
-                    ), ['stockSymbol']
+                    dataAvailableTo=dataAvailableTo),
+                    ['stockSymbol'])
             self.data_DB.commit()
         except Exception as exp:
             self.data_DB.rollback()
@@ -65,4 +65,4 @@ class _MainTableManager():
 
 if __name__ == '__main__':
     data_DB = _MainTableManager()
-    data_DB.repopulate_all_assets()
+    print(data_DB.return_main_asset_data('AAPL'))
