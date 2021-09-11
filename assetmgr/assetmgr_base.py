@@ -4,6 +4,38 @@ sys.path.insert(0, os.getcwd())  # Resolve Importing errors
 import dataset
 from assetmgr.assetExt import AssetExtractor
 
+class AssetManager:
+    def __init__(self, db_name='AssetDB.db'):
+        self.thisDB = _AssetDatabase(db_name)
+        self.assetExtraction = AssetExtractor()
+
+    def pullAlpacaAssets(self):
+        listAlpAssets = self.assetExtraction.getAllAlpacaAssets()
+
+        for individualAsset in listAlpAssets:
+            assetDb = self.thisDB.returnAsset(individualAsset['symbol'])
+            listParameters = (individualAsset['symbol'], individualAsset['name'],
+                              individualAsset['exchange'], individualAsset['status'] != 'active',
+                              individualAsset['shortable'], not individualAsset['tradable'])
+
+            if not assetDb:
+                self.thisDB.insertAsset(*listParameters)
+            else:
+                self.thisDB.updateAsset(*listParameters)
+
+    def pullPyNseAssets(self):
+        listPyNseAssets, _ = self.assetExtraction.getAllPyNSEAssets(threading=True)
+
+        for individualAsset in listPyNseAssets:
+            assetDb = self.thisDB.returnAsset(individualAsset['symbol'])
+            listParameters = (individualAsset['symbol'], individualAsset['companyName'],
+                              'NSE', individualAsset['isDelisted'],
+                              individualAsset['isSLBSec'], individualAsset['isSuspended'])
+
+            if not assetDb:
+                self.thisDB.insertAsset(*listParameters)
+            else:
+                self.thisDB.updateAsset(*listParameters)
 
 class _AssetDatabase:
     def __init__(self, db_name):
@@ -68,40 +100,6 @@ class _AssetDatabase:
 
     def returnColumns(self):
         return self.assetTable.columns
-
-
-class AssetManager:
-    def __init__(self, db_name='AssetDB.db'):
-        self.thisDB = _AssetDatabase(db_name)
-        self.assetExtraction = AssetExtractor()
-
-    def pullAlpacaAssets(self):
-        listAlpAssets = self.assetExtraction.getAllAlpacaAssets()
-
-        for individualAsset in listAlpAssets:
-            assetDb = self.thisDB.returnAsset(individualAsset['symbol'])
-            listParameters = (individualAsset['symbol'], individualAsset['name'],
-                              individualAsset['exchange'], individualAsset['status'] != 'active',
-                              individualAsset['shortable'], not individualAsset['tradable'])
-
-            if not assetDb:
-                self.thisDB.insertAsset(*listParameters)
-            else:
-                self.thisDB.updateAsset(*listParameters)
-
-    def pullPyNseAssets(self):
-        listPyNseAssets, _ = self.assetExtraction.getAllPyNSEAssets(threading=True)
-
-        for individualAsset in listPyNseAssets:
-            assetDb = self.thisDB.returnAsset(individualAsset['symbol'])
-            listParameters = (individualAsset['symbol'], individualAsset['companyName'],
-                              'NSE', individualAsset['isDelisted'],
-                              individualAsset['isSLBSec'], individualAsset['isSuspended'])
-
-            if not assetDb:
-                self.thisDB.insertAsset(*listParameters)
-            else:
-                self.thisDB.updateAsset(*listParameters)
 
 
 if __name__ == '__main__':
