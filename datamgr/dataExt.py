@@ -31,13 +31,27 @@ class DataExtractor():
     def extract_iex_historical(self, list_of_symbols, start: datetime, end: datetime, close_only=False, output_format='pandas'):
         dict_of_dataframes = {}
         not_found_symbols = []
-        for slice in range(100,len(list_of_symbols),100):       #TODO: Thread this
-            df = stocks.get_historical_data(list_of_symbols[slice-100:slice], start=start, end=end, close_only=close_only, output_format=output_format)
-            for symbol in list_of_symbols:
+        #TODO: Thread this
+        for slice in range(100,len(list_of_symbols)+1,100):
+            print(slice)
+            thisSlice = list_of_symbols[slice-100:slice]
+            df = stocks.get_historical_data(thisSlice, start=start, end=end, close_only=close_only, output_format=output_format)
+            for symbol in thisSlice:
                 try:
                     dict_of_dataframes[symbol] = df.loc[:, symbol]
                 except KeyError:
-                    not_found_symbols.append(symbol)           
+                    not_found_symbols.append(symbol)  
+        
+        remaining_slice = len(list_of_symbols)%100
+        thisSlice = list_of_symbols[len(list_of_symbols)-remaining_slice:len(list_of_symbols)]
+
+        if thisSlice:
+            df = stocks.get_historical_data(thisSlice, start=start, end=end, close_only=close_only, output_format=output_format)
+            for symbol in thisSlice:
+                try:
+                    dict_of_dataframes[symbol] = df.loc[:, symbol]
+                except KeyError:
+                    not_found_symbols.append(symbol)          
         return dict_of_dataframes, not_found_symbols
 
 
