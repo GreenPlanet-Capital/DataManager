@@ -1,65 +1,41 @@
 from datetime import datetime
 import sys
 import os
-sys.path.insert(0, os.getcwd())  # Resolve Importing errors
-import requests
-import configparser
-from pynse import Nse
-import concurrent.futures
-from assetmgr.nseList import listNSESymbols
-from iexfinance import stocks
-from assetmgr.assetmgr_base import AssetManager
+from alpaca_trade_api.rest import REST, TimeFrame
+import asyncio
 
-class DataExtractor():
-    def __init__(self, sandbox_mode=True) -> None:
+sys.path.insert(0, os.getcwd())  # Resolve Importing errors
+from assetmgr.assetmgr_base import AssetManager
+from datamgr.historic_async import HistoricalAsync, DataType
+from core import *
+
+
+class DataExtractor:
+    def __init__(self) -> None:
         self.configParse = configparser.ConfigParser()
         self.configParse.read(os.path.join('config_files', 'assetConfig.cfg'))
-        self.IEXAuthSandbox = {
-            'PublicKey': self.configParse.get('IEX_Sandbox', 'IEX_Sandbox_Public'),
-            'PrivateKey': self.configParse.get('IEX_Sandbox', 'IEX_Sandbox_Private'),
-        }
-        self.IEXAuth = {
-            'PublicKey': self.configParse.get('IEX_Real', 'IEX_Public'),
-            'PrivateKey': self.configParse.get('IEX_Real', 'IEX_Private'),
-        }
-        if sandbox_mode:
-            os.environ["IEX_TOKEN"] = self.IEXAuthSandbox['PrivateKey']
-            os.environ["IEX_API_VERSION"] = "iexcloud-sandbox"
-        else:
-            os.environ["IEX_TOKEN"] = self.IEXAuth['PrivateKey']
-    
-    def extract_iex_historical(self, list_of_symbols, start: datetime, end: datetime, close_only=False, output_format='pandas'):
-        dict_of_dataframes = {}
-        not_found_symbols = []
-        #TODO: Thread this
-        for slice in range(100,len(list_of_symbols)+1,100):
-            print(slice)
-            thisSlice = list_of_symbols[slice-100:slice]
-            df = stocks.get_historical_data(thisSlice, start=start, end=end, close_only=close_only, output_format=output_format)
-            for symbol in thisSlice:
-                try:
-                    dict_of_dataframes[symbol] = df.loc[:, symbol]
-                except KeyError:
-                    not_found_symbols.append(symbol)  
-        
-        remaining_slice = len(list_of_symbols)%100
-        thisSlice = list_of_symbols[len(list_of_symbols)-remaining_slice:len(list_of_symbols)]
+        setEnv()
+        self.AlpacaAPI = REST(raw_data=True)
+        self.AsyncObj = HistoricalAsync()
 
-        if thisSlice:
-            df = stocks.get_historical_data(thisSlice, start=start, end=end, close_only=close_only, output_format=output_format)
-            for symbol in thisSlice:
-                try:
-                    dict_of_dataframes[symbol] = df.loc[:, symbol]
-                except KeyError:
-                    not_found_symbols.append(symbol)          
-        return dict_of_dataframes, not_found_symbols
+    def getOneHistoricalAlpaca(self, symbolName, dateFrom, dateTo, timeframe: TimeFrame, adjustment='all'):
+        return self.AlpacaAPI.get_bars(symbolName, timeframe, dateFrom, dateTo, adjustment=adjustment).df
+
+    def getListHistoricalAlpaca(self, listSymbols, dateFrom, dateTo, timeframe: TimeFrame, adjustment='all'):
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.AsyncObj.get_historic_bars(listSymbols, dateFrom, dateTo, timeframe, adjustment))
+        return self.AsyncObj.resultAsync
 
 
-
-
-if __name__ == '__main__':
-    extractor = DataExtractor(sandbox_mode=True)
-    manager = AssetManager(sandbox_mode=True)
-    manager.pullAlpacaAssets()
-    output, _ = extractor.extract_iex_historical(manager.asset_DB.returnAllTradableSymbols()[:500], datetime(2017, 2, 9), datetime(2017, 5, 24))
+if '__main__' == __name__:
+    extractor = DataExtractor()
+    manager = AssetManager()
+    sol = extractor.getListHistoricalAlpaca(manager.asset_DB.returnAllTradableSymbols(),
+                                            datetime(2021, 1, 1).strftime('%Y-%m-%d'),
+                                            datetime(2021, 2, 1).strftime('%Y-%m-%d'),
+                                            TimeFrame.Day)
+    a = [e.__getitem__(0) for e in sol if not isinstance(e, Exception)]
+    a = set(a)
+    b = set(manager.asset_DB.returnAllTradableSymbols())
+    c = list(b.difference(a))
     print()

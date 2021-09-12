@@ -2,11 +2,19 @@
 ## Setup
 ### Create a assetConfig.cfg
 - Create an assetConfig.cfg file in the directory called config_files
-- Insert your API Key and API Secret Key here as follows:
+- Insert your API Keys and Secrets here as follows:
 ~~~
 [Alpaca]
 AlpacaKey=KeyHere
 AlpacaSecret=SecretHere
+
+[IEX_Sandbox]
+IEX_Sandbox_Public=PublicHere
+IEX_Sandbox_Private=PrivateHere
+
+[IEX_Real]
+IEX_Public=PublicHere
+IEX_Private=PrivateHere
 ~~~
 
 ## Examples of API Returns

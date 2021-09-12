@@ -1,47 +1,29 @@
 import sys
 import os
-sys.path.insert(0, os.getcwd())  # Resolve Importing errors
-import requests
-import configparser
 from pynse import Nse
 import concurrent.futures
+
+sys.path.insert(0, os.getcwd())  # Resolve Importing errors
 from assetmgr.nseList import listNSESymbols
 from iexfinance import refdata
+from alpaca_trade_api.rest import REST
+from core import *
 
 
 class AssetExtractor:
-    def __init__(self, sandbox_mode=True):
-        self.configParse = configparser.ConfigParser()
-        self.configParse.read(os.path.join('config_files', 'assetConfig.cfg'))
+    def __init__(self):
+        setEnv()
+        self.AlpacaAPI = REST(raw_data=True)
         self.NSEApi = Nse()
-        self.AlpacaHeaders = {
-            'APCA-API-KEY-ID': self.configParse.get('Alpaca', 'AlpacaKey'),
-            'APCA-API-SECRET-KEY': self.configParse.get('Alpaca', 'AlpacaSecret'),
-        }
-        self.IEXAuthSandbox = {
-            'PublicKey': self.configParse.get('IEX_Sandbox', 'IEX_Sandbox_Public'),
-            'PrivateKey': self.configParse.get('IEX_Sandbox', 'IEX_Sandbox_Private'),
-        }
-        self.IEXAuth = {
-            'PublicKey': self.configParse.get('IEX_Real', 'IEX_Public'),
-            'PrivateKey': self.configParse.get('IEX_Real', 'IEX_Private'),
-        }
-        if sandbox_mode:
-            os.environ["IEX_TOKEN"] = self.IEXAuthSandbox['PrivateKey']
-            os.environ["IEX_API_VERSION"] = "iexcloud-sandbox"
-        else:
-            os.environ["IEX_TOKEN"] = self.IEXAuth['PrivateKey']
 
     def getAllIEXCloudAssets(self):
         return refdata.get_symbols()
 
     def getAlpacaAsset(self, stockSymbol):
-        response = requests.get(f'https://paper-api.alpaca.markets/v2/assets/{stockSymbol}', headers=self.AlpacaHeaders)
-        return response.json()
+        return self.AlpacaAPI.get_asset(stockSymbol)
 
     def getAllAlpacaAssets(self):
-        response = requests.get('https://paper-api.alpaca.markets/v2/assets', headers=self.AlpacaHeaders)
-        return response.json()
+        return self.AlpacaAPI.list_assets()
 
     def getPyNSEAsset(self, stockSymbol):
         try:
@@ -74,7 +56,8 @@ class AssetExtractor:
         listNSEAssets = [asset for i, asset in enumerate(listNSEAssets) if i not in positions_to_be_removed]
         return listNSEAssets, symbols_not_found
 
+
 if __name__ == '__main__':
-    extractor = AssetExtractor(sandbox_mode=True)
-    a = extractor.getAllIEXCloudAssets()
-    print()
+    extractor = AssetExtractor()
+    listA = extractor.getAllAlpacaAssets()
+
