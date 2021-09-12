@@ -6,9 +6,9 @@ from assetmgr.assetExt import AssetExtractor
 from datetime import datetime, timezone
 
 class AssetManager:
-    def __init__(self, db_name='AssetDB.db'):
+    def __init__(self, db_name='AssetDB.db', sandbox_mode=True):
         self.asset_DB = _AssetDatabase(db_name)
-        self.assetExtraction = AssetExtractor()
+        self.assetExtraction = AssetExtractor(sandbox_mode)
 
     def pullAlpacaAssets(self):
         listAlpAssets = self.assetExtraction.getAllAlpacaAssets()
@@ -110,6 +110,5 @@ class _AssetDatabase:
 
 
 if __name__ == '__main__':
-    mgr = AssetManager()
-    mgr.update_iex_db()
-    mgr.pullAlpacaAssets()
+    mgr = AssetManager(sandbox_mode=True)
+    mgr.asset_DB.returnAllTradableSymbols()

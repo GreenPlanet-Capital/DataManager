@@ -10,7 +10,7 @@ from iexfinance import refdata
 
 
 class AssetExtractor:
-    def __init__(self):
+    def __init__(self, sandbox_mode=True):
         self.configParse = configparser.ConfigParser()
         self.configParse.read(os.path.join('config_files', 'assetConfig.cfg'))
         self.NSEApi = Nse()
@@ -26,8 +26,11 @@ class AssetExtractor:
             'PublicKey': self.configParse.get('IEX_Real', 'IEX_Public'),
             'PrivateKey': self.configParse.get('IEX_Real', 'IEX_Private'),
         }
-        os.environ["IEX_TOKEN"] = self.IEXAuth['PrivateKey']
-        # os.environ["IEX_API_VERSION"] = "iexcloud-sandbox"
+        if sandbox_mode:
+            os.environ["IEX_TOKEN"] = self.IEXAuthSandbox['PrivateKey']
+            os.environ["IEX_API_VERSION"] = "iexcloud-sandbox"
+        else:
+            os.environ["IEX_TOKEN"] = self.IEXAuth['PrivateKey']
 
     def getAllIEXCloudAssets(self):
         return refdata.get_symbols()
@@ -72,6 +75,6 @@ class AssetExtractor:
         return listNSEAssets, symbols_not_found
 
 if __name__ == '__main__':
-    extractor = AssetExtractor()
+    extractor = AssetExtractor(sandbox_mode=True)
     a = extractor.getAllIEXCloudAssets()
     print()
