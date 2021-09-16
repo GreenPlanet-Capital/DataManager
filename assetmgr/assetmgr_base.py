@@ -5,6 +5,7 @@ sys.path.insert(0, os.getcwd())  # Resolve Importing errors
 import dataset
 from assetmgr.assetExt import AssetExtractor
 from datetime import datetime, timezone
+from 
 
 
 class AssetManager:
@@ -51,64 +52,6 @@ class AssetManager:
         else:
             # TODO Handle for single stock having multiple exchangeNames
             self.asset_DB.updateAsset(asset_data)
-
-
-class _AssetDatabase:
-    def __init__(self, db_name):
-        self.assetDb = dataset.connect(f'sqlite:///{os.path.join("tempDir", db_name)}')
-        if len(self.listTables()) == 0:
-            self.createAssetTable()
-        self.assetTable = self.assetDb.load_table(table_name='Assets')
-
-    def listTables(self):
-        return self.assetDb.tables
-
-    def close_database(self):
-        self.assetDb.close()
-
-    def createAssetTable(self):
-        self.assetTable = self.assetDb.create_table('Assets', primary_id='stockSymbol',
-                                                    primary_type=self.assetDb.types.text)
-        self.assetTable.create_column('stockSymbol', self.assetDb.types.text)
-        self.assetTable.create_column('companyName', self.assetDb.types.text)
-        self.assetTable.create_column('exchangeName', self.assetDb.types.text)
-        self.assetTable.create_column('dateLastUpdated', self.assetDb.types.datetime)
-        self.assetTable.create_column('region', self.assetDb.types.text)
-        self.assetTable.create_column('currency', self.assetDb.types.text)
-        self.assetTable.create_column('isDelisted', self.assetDb.types.boolean)
-        self.assetTable.create_column('isShortable', self.assetDb.types.boolean)
-        self.assetTable.create_column('isSuspended', self.assetDb.types.boolean)
-
-    def insertAsset(self, asset_data):
-        self.assetDb.begin()
-        try:
-            self.assetTable.insert(asset_data)
-            self.assetDb.commit()
-        except Exception as exp:
-            self.assetDb.rollback()
-
-    def updateAsset(self, asset_data):
-        self.assetDb.begin()
-        try:
-            self.assetTable.update(asset_data, ['stockSymbol'])
-            self.assetDb.commit()
-        except Exception as exp:
-            self.assetDb.rollback()
-
-    def returnAllAssets(self):
-        return list(self.assetTable.all())
-
-    def returnAsset(self, stockSymbol):
-        return self.assetTable.find_one(stockSymbol=stockSymbol)
-
-    def returnExchangeBucket(self, exchangeName, isDelisted=False, isSuspended=False):
-        return list(self.assetTable.find(exchangeName=exchangeName, isDelisted=isDelisted, isSuspended=isSuspended))
-
-    def returnAllTradableSymbols(self, isDelisted=False, isSuspended=False):
-        return [row['stockSymbol'] for row in self.assetTable.find(isDelisted=isDelisted, isSuspended=isSuspended)]
-
-    def returnColumns(self):
-        return self.assetTable.columns
 
 
 if __name__ == '__main__':
