@@ -3,7 +3,7 @@ import os
 import dataset
 
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
-from assetmgr.assetmgr_base import AssetManager
+from assetmgr.asset_manager import AssetManager
 
 
 def DataManager():

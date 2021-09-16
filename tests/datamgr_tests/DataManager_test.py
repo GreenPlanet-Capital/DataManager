@@ -3,7 +3,7 @@ import sys
 import os
 import glob
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
-from datamgr.DataManager import _MainTableManager
+from datamgr.data_manager import _MainTableManager
 
 for loc in glob.glob(os.path.join("tempDir",'Test*.db*')):
   os.remove(loc)

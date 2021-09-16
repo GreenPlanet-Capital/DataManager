@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
 from dataset.table import Table
-from assetmgr.assetmgr_base import AssetManager
+from assetmgr.asset_manager import AssetManager
 
 if os.path.exists(os.path.join("tempDir", 'Test_Asset_DB.db')):
   os.remove(os.path.join("tempDir", 'Test_Asset_DB.db'))

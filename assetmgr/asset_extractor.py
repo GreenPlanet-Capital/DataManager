@@ -4,7 +4,7 @@ from pynse import Nse
 import concurrent.futures
 
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
-from assetmgr.nseList import listNSESymbols
+from assetmgr.nse_list import listNSESymbols
 from iexfinance import refdata
 from alpaca_trade_api.rest import REST
 from core import *

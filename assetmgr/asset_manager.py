@@ -1,7 +1,7 @@
 import os
 import sys
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors=
-from assetmgr.assetExt import AssetExtractor
+from assetmgr.asset_extractor import AssetExtractor
 from datetime import datetime, timezone
 from database_layer.tables import AssetTableManager
 

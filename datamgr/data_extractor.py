@@ -5,7 +5,7 @@ from alpaca_trade_api.rest import REST, TimeFrame
 import asyncio
 
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
-from assetmgr.assetmgr_base import AssetManager
+from assetmgr.asset_manager import AssetManager
 from datamgr.historic_async import HistoricalAsync, DataType
 from core import *
 
