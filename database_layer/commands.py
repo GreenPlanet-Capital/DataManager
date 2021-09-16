@@ -1,9 +1,9 @@
 import sys
 import os
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
-from database_manager.database import DatabaseManager
+from database_layer.database import DatabaseManager
 
-class AssetTable:
+class AssetTableManager:
 
     def __init__(self, db_name):
         self.db = DatabaseManager(db_name)
@@ -15,9 +15,9 @@ class AssetTable:
                         'dateLastUpdated': 'text not null',
                         'region': 'text',
                         'currency': 'text',
-                        'isDelisted': 'integer not null',
-                        'isShortable': 'integer not null',
-                        'isSuspended': 'integer not null',
+                        'isDelisted': 'integer',
+                        'isShortable': 'integer',
+                        'isSuspended': 'integer',
                                         }
         self.table = self.create_asset_table(self.table_name, self.columns)
 
@@ -42,7 +42,7 @@ class AssetTable:
     
     def get_one_asset(self, stock_symbol):
         asset = self.db.select(self.table_name, {'stockSymbol': stock_symbol}).fetchone()
-        return asset_row_to_dict(self.columns, asset)
+        return asset_row_to_dict(self.columns, asset) if asset else None
 
     def get_exchange_basket(self, exchangeName, isDelisted=False, isSuspended=False):
         list_of_assets = self.db.select(self.table_name, {'exchangeName': exchangeName, 
@@ -66,7 +66,7 @@ def asset_row_to_dict(columns_dict, row):
     
 
 if '__main__'==__name__:
-    asset_table = AssetTable(f'{os.path.join("tempDir", "Asset_Test.db")}')
+    asset_table = AssetTableManager(f'{os.path.join("tempDir", "Asset_Test.db")}')
     data = {
             'stockSymbol': 'TEST_SYMBOL_TWO',
             'companyName': 'TEST_COMPANY',
