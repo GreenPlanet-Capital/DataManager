@@ -1,19 +1,17 @@
 import os
 import sys
-
-sys.path.insert(0, os.getcwd())  # Resolve Importing errors
-import dataset
+sys.path.insert(0, os.getcwd())  # Resolve Importing errors=
 from assetmgr.assetExt import AssetExtractor
 from datetime import datetime, timezone
-from 
+from database_layer.commands import AssetTableManager
 
 
 class AssetManager:
     def __init__(self, db_name='AssetDB.db'):
-        self.asset_DB = _AssetDatabase(db_name)
+        self.asset_table_manager = AssetTableManager(os.path.join("tempDir", db_name))
         self.assetExtraction = AssetExtractor()
 
-    def pullAlpacaAssets(self):
+    def update_db_alpaca_assets(self):
         listAlpAssets = self.assetExtraction.getAllAlpacaAssets()
 
         for individualAsset in listAlpAssets:
@@ -24,7 +22,7 @@ class AssetManager:
 
             self.insert_assets_into_db(asset_data)
 
-    def pullPyNseAssets(self):
+    def update_db_pynse_assets(self):
         listPyNseAssets, _ = self.assetExtraction.getAllPyNSEAssets(threading=True)
 
         for individualAsset in listPyNseAssets:
@@ -34,29 +32,31 @@ class AssetManager:
 
             self.insert_assets_into_db(asset_data)
 
-    def update_iex_db(self):
+    def update_db_iex_assets(self):
         list_of_assets = self.assetExtraction.getAllIEXCloudAssets()
 
         for iterator in range(len(list_of_assets)):
-            individualAsset = list_of_assets.iloc[iterator]
+            individualAsset = list_of_assets[iterator]
             asset_data = {'stockSymbol': individualAsset['symbol'], 'companyName': individualAsset['name'],
                           'exchangeName': individualAsset['exchange'],
                           'region': individualAsset['region'], 'currency': individualAsset['currency']}
             self.insert_assets_into_db(asset_data)
 
     def insert_assets_into_db(self, asset_data):
+        # TODO Ensure that at the end of an updation cycle that no isDelisted=Null, isShortable=Null exist
         asset_data['dateLastUpdated'] = datetime.now(timezone.utc)
-        returned_Asset = self.asset_DB.returnAsset(asset_data['stockSymbol'])
+        returned_Asset = self.asset_table_manager.get_one_asset(asset_data['stockSymbol'])
         if not returned_Asset:
-            self.asset_DB.insertAsset(asset_data)
+            self.asset_table_manager.insert_asset(asset_data)
         else:
             # TODO Handle for single stock having multiple exchangeNames
-            self.asset_DB.updateAsset(asset_data)
+            self.asset_table_manager.update_asset(asset_data)
 
 
 if __name__ == '__main__':
     os.environ['SANDBOX_MODE'] = 'True'
     mgr = AssetManager('AssetDB.db')
-    mgr.pullAlpacaAssets()
-    a = mgr.asset_DB.returnAllAssets()
+    mgr.update_db_alpaca_assets()
+    mgr.update_db_iex_assets()
+    a = mgr.asset_table_manager.get_assets_list()
     print()
