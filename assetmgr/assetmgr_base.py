@@ -112,6 +112,8 @@ class _AssetDatabase:
 
 
 if __name__ == '__main__':
-    mgr = AssetManager()
+    os.environ['SANDBOX_MODE'] = 'True'
+    mgr = AssetManager('AssetDB.db')
     mgr.pullAlpacaAssets()
-
+    a = mgr.asset_DB.returnAllAssets()
+    print()
