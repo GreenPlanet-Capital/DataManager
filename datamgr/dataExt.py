@@ -30,12 +30,12 @@ class DataExtractor:
 if '__main__' == __name__:
     extractor = DataExtractor()
     manager = AssetManager()
-    sol = extractor.getListHistoricalAlpaca(manager.asset_DB.returnAllTradableSymbols(),
+    sol = extractor.getListHistoricalAlpaca(manager.asset_table_manager.returnAllTradableSymbols(),
                                             datetime(2021, 1, 1).strftime('%Y-%m-%d'),
                                             datetime(2021, 2, 1).strftime('%Y-%m-%d'),
                                             TimeFrame.Day)
     a = [e.__getitem__(0) for e in sol if not isinstance(e, Exception)]
     a = set(a)
-    b = set(manager.asset_DB.returnAllTradableSymbols())
+    b = set(manager.asset_table_manager.get_all_tradable_symbols())
     c = list(b.difference(a))
     print()

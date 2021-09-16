@@ -34,7 +34,7 @@ class _MainTableManager:
         return self.db_connection.tables
 
     def repopulate_all_assets(self):
-        symbols_list = self.asset_manager.asset_DB.returnAllTradableSymbols()
+        symbols_list = self.asset_manager.asset_table_manager.get_all_tradable_symbols()
         for symbol in symbols_list:
             main_asset_data = self.return_main_asset_data(symbol)
             if main_asset_data:

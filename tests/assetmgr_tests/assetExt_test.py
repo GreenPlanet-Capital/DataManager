@@ -8,7 +8,7 @@ if os.path.exists(os.path.join("tempDir", 'Test_Asset_DB.db')):
   os.remove(os.path.join("tempDir", 'Test_Asset_DB.db'))
 
 # Use Test_Asset_DB.db as the name (otherwise it will overwrite Asset_DB.db
-asset_db_obj = AssetManager('Test_Asset_DB.db').asset_DB
+asset_db_obj = AssetManager('Test_Asset_DB.db').asset_table_manager
 
 
 def test_listTables():
