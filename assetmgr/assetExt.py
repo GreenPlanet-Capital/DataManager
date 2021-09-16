@@ -58,6 +58,7 @@ class AssetExtractor:
 
 
 if __name__ == '__main__':
+    os.environ['SANDBOX_MODE'] = 'True'
     extractor = AssetExtractor()
     listA = extractor.getAllAlpacaAssets()
 
