@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from database_layer.tables import AssetTableManager
 
 
-class AssetManager:
+class Assets:
     def __init__(self, db_name='AssetDB.db'):
         self.asset_table_manager = AssetTableManager(os.path.join("tempDir", db_name))
         self.assetExtraction = AssetExtractor()
@@ -55,7 +55,7 @@ class AssetManager:
 
 if __name__ == '__main__':
     os.environ['SANDBOX_MODE'] = 'True'
-    mgr = AssetManager('AssetDB.db')
+    mgr = Assets('AssetDB.db')
     mgr.update_db_alpaca_assets()
     mgr.update_db_iex_assets()
     a = mgr.asset_table_manager.get_assets_list()
