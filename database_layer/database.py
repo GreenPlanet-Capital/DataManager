@@ -71,6 +71,28 @@ class DatabaseManager:
             query,
             tuple(criteria.values()),
         )
+
+    def select_between_range(self, table_name, criteria=None, order_by=None):
+        criteria = criteria or {}
+
+        query = f'SELECT * FROM {table_name}'
+
+        start_timestamp = criteria["start_timestamp"]
+        end_timestamp = criteria["end_timestamp"]
+        values = start_timestamp, end_timestamp
+
+        if criteria:
+            placeholders = ['timestamp >= ?', 'timestamp <= ?']
+            select_criteria = ' AND '.join(placeholders)
+            query += f' WHERE {select_criteria}'
+
+        if order_by:
+            query += f' ORDER BY {order_by}'
+
+        return self._execute(
+            query,
+            values,
+        )        
     
     def list_tables(self):
         query = """SELECT name
