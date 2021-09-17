@@ -49,13 +49,15 @@ class DailyStockTables:
         Input: list_of_tuples
         Format: [('SYMBOL1', pandas.Dataframe), ('SYMBOL2', pandas.Dataframe)...]
         """
+        # Cannot be threaded
         for stock_symbol, df in list_of_tuples:
             daily_stock_table = DailyStockDataTable(stock_symbol, self.db)
             records = _Conversions().tuples_to_dict(
                                 list(df.to_records()),
                                 daily_stock_table.table_manager.columns
                                 )
-            daily_stock_table.update_daily_stock_data(records)
+            dataAvailableFrom, dataAvailableTo = daily_stock_table.update_daily_stock_data(records)
+            self.main_stocks.update_stock_symbol_main_table(stockSymbol=stock_symbol, dataAvailableFrom=dataAvailableFrom, dataAvailableTo=dataAvailableTo)
 
 
     
@@ -71,15 +73,18 @@ class DailyStockDataTable:
         """
         for timestamp_ohlc_dict in list_of_timestamped_data:
             if isinstance(timestamp_ohlc_dict['timestamp'],np.datetime64):
+                # TODO Make a Dates Utility Class to transform any kind of date to '%Y-%m-%d %H:%M:%S' and vice-versa
                 timestamp_ohlc_dict['timestamp'] = datetime.utcfromtimestamp(
                                                 (timestamp_ohlc_dict['timestamp'] - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
                                                 ).strftime('%Y-%m-%d %H:%M:%S')
             if not self.table_manager.get_one_day_data(timestamp_ohlc_dict['timestamp']):
                 self.table_manager.insert_data(timestamp_ohlc_dict)
             else:
-                warnings.warn('Trying to insert OHLCVTC data which already exists for given timestamp')
+                warnings.warn(f'Trying to insert OHLCVTC data that already exists for timestamp: {timestamp_ohlc_dict["timestamp"]}')
 
         return self.table_manager.get_dates_for_available_data()
+
+    
 
 
 if __name__ == '__main__':
@@ -116,7 +121,7 @@ if __name__ == '__main__':
                                 'trade_count': 35_000,
                                 'vwap': None,}, 
                                 )
-    dateAvailableFrom, dateAvailableTo = test_symbol_stock_table.update_daily_stock_data(list_of_timestamped_data=list_of_timestamped_data)
-    main_stocks.update_stock_symbol_main_table(test_symbol_stock_table.table_manager.table_name, dataAvailableFrom=dateAvailableFrom, dataAvailableTo=dateAvailableTo)
+    dataAvailableFrom, dataAvailableTo = test_symbol_stock_table.update_daily_stock_data(list_of_timestamped_data=list_of_timestamped_data)
+    main_stocks.update_stock_symbol_main_table(test_symbol_stock_table.table_manager.table_name, dataAvailableFrom=dataAvailableFrom, dataAvailableTo=dataAvailableTo)
 
     print()
