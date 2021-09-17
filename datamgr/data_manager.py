@@ -2,11 +2,12 @@ from datetime import datetime, timezone
 import sys
 import os
 import warnings
+import numpy as np
 
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
 from database_layer.database import DatabaseManager
 from assetmgr.asset_manager import Assets
-from database_layer.tables import DailyDataTableManager, MainTableManager
+from database_layer.tables import _Conversions, DailyDataTableManager, MainTableManager
 
 def DataManager():
     def __init__(self):
@@ -28,7 +29,7 @@ class MainStocks:
         asset_data = {'stockSymbol': stockSymbol,
                 'dataAvailableFrom': dataAvailableFrom,
                 'dataAvailableTo': dataAvailableTo,
-                'dateLastUpdated': datetime.now(timezone.utc)
+                'dateLastUpdated': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
                 }
         main_asset_data = self.table_manager.get_one_asset(stockSymbol)
         if main_asset_data:
@@ -38,6 +39,26 @@ class MainStocks:
         else:
             self.table_manager.insert_asset(asset_data)
 
+class DailyStockTables:
+    def __init__(self, db_path, main_stocks: MainStocks):
+        self.db = DatabaseManager(database_path=db_path)
+        self.main_stocks = main_stocks
+
+    def update_daily_stock_data(self, list_of_tuples: list):
+        """
+        Input: list_of_tuples
+        Format: [('SYMBOL1', pandas.Dataframe), ('SYMBOL2', pandas.Dataframe)...]
+        """
+        for stock_symbol, df in list_of_tuples:
+            daily_stock_table = DailyStockDataTable(stock_symbol, self.db)
+            records = _Conversions().tuples_to_dict(
+                                list(df.to_records()),
+                                daily_stock_table.table_manager.columns
+                                )
+            daily_stock_table.update_daily_stock_data(records)
+
+
+    
 
 class DailyStockDataTable:
     def __init__(self, table_name, db: DatabaseManager):
@@ -49,6 +70,10 @@ class DailyStockDataTable:
         Returns: tuple with the new date available from and date available to
         """
         for timestamp_ohlc_dict in list_of_timestamped_data:
+            if isinstance(timestamp_ohlc_dict['timestamp'],np.datetime64):
+                timestamp_ohlc_dict['timestamp'] = datetime.utcfromtimestamp(
+                                                (timestamp_ohlc_dict['timestamp'] - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
+                                                ).strftime('%Y-%m-%d %H:%M:%S')
             if not self.table_manager.get_one_day_data(timestamp_ohlc_dict['timestamp']):
                 self.table_manager.insert_data(timestamp_ohlc_dict)
             else:

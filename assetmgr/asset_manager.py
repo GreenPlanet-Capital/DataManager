@@ -44,7 +44,7 @@ class Assets:
 
     def insert_assets_into_db(self, asset_data):
         # TODO Ensure that at the end of an updation cycle that no isDelisted=Null, isShortable=Null exist
-        asset_data['dateLastUpdated'] = datetime.now(timezone.utc)
+        asset_data['dateLastUpdated'] = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         returned_Asset = self.asset_table_manager.get_one_asset(asset_data['stockSymbol'])
         if not returned_Asset:
             self.asset_table_manager.insert_asset(asset_data)
