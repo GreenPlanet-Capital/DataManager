@@ -8,7 +8,6 @@ class TableManager:
         self.db = DatabaseManager(db_name)
         self.table_name = ''
         self.columns = {}
-        self.table = None
 
     def __del__(self):
         del(self.db)
@@ -52,7 +51,7 @@ class AssetTableManager(TableManager):
                         'isShortable': 'integer',
                         'isSuspended': 'integer',
                                         }
-        self.table = self.create_asset_table(self.table_name, self.columns)
+        self.create_asset_table(self.table_name, self.columns)
 
     def get_exchange_basket(self, exchangeName, isDelisted=False, isSuspended=False):
         list_of_assets = self.db.select(self.table_name, {'exchangeName': exchangeName, 
@@ -78,6 +77,43 @@ class MainTableManager(TableManager):
                                         }
         self.table = self.create_asset_table(self.table_name, self.columns)
 
+class DailyDataTableManager:
+
+    def __init__(self, table_name, db: DatabaseManager):
+        self.db = db
+        self.table_name = table_name
+        self.columns = {
+                        'timestamp': 'text not null primary key',
+                        'open': 'real',
+                        'high': 'real',
+                        'low': 'real',
+                        'close': 'real',
+                        'volume': 'integer',
+                        'trade_count': 'integer',
+                        'vwap': 'real',
+                        }
+        self.create_sub_table(self.table_name, self.columns)
+
+    def __del__(self):
+        del(self.db)
+
+    def create_sub_table(self, table_name, columns):
+        self.db.create_table(f'{table_name}', columns)
+
+    def insert_data(self, asset_data):
+        self.db.add(self.table_name, asset_data)
+
+    def get_one_day_data(self, timestamp):
+        asset = self.db.select(self.table_name, {'timestamp': timestamp}).fetchone()
+        return _Conversions.asset_row_to_dict(self.columns, asset) if asset else None
+    
+    def get_data(self, start_timestamp, end_timestamp):
+        criteria = {'start_timestamp': start_timestamp,
+                    'end_timestamp': end_timestamp}
+        order_by = 'timestamp'
+        daily_data = self.db.select_between_range(self.table_name, criteria, order_by).fetchall()
+        return _Conversions().tuples_to_dict(daily_data, self.columns)
+    
 
 class _Conversions:
     
@@ -103,9 +139,13 @@ if '__main__'==__name__:
             'isShortable': 1,
             'isSuspended': 0,
             }
-    asset_table.insert_asset(data)
+    # asset_table.insert_asset(data)
     # asset_table.update_asset(data)
     # output = asset_table.get_exchange_basket(exchangeName='TEST_EXCHANGE')
     # output = asset_table.get_assets_list()
-    output = asset_table.get_all_tradable_symbols()
+    # output = asset_table.get_all_tradable_symbols()
+
+    db = DatabaseManager(f'{os.path.join("tempDir", "Stock_DataDB.db")}')
+    daily_data_table = DailyDataTableManager('TEST_SYMBOL_TABLE', db)
+    a = daily_data_table.get_data('2021-09-17 21:45:38.745294+00:00', '2021-09-19 21:45:38.745294+00:00'), 
     print()
