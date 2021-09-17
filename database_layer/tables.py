@@ -115,13 +115,13 @@ class DailyDataTableManager:
         return _Conversions().tuples_to_dict(daily_data, self.columns)
 
     def get_dates_for_available_data(self):
-        def get_date_available_from(self):
-            return self.db.select_min_value_from_column(self.table_name, 'timestamp')
+        def get_date_available_from(self: DailyDataTableManager):
+            return self.db.select_min_value_from_column(self.table_name, 'timestamp').fetchall()
 
-        def get_date_available_to(self):
-            return self.db.select_max_value_from_column(self.table_name, 'timestamp')
+        def get_date_available_to(self: DailyDataTableManager):
+            return self.db.select_max_value_from_column(self.table_name, 'timestamp').fetchall()
 
-        return get_date_available_from(), get_date_available_to()
+        return get_date_available_from(self)[0][0], get_date_available_to(self)[0][0]
 
     def _update_one_day_data(self, timestamp_ohlc_dict):
         self.db.update(self.table_name, {'timestamp': timestamp_ohlc_dict['timestamp']}, timestamp_ohlc_dict)
