@@ -50,6 +50,7 @@ class DailyStockDataTable:
         self.table_manager = DailyDataTableManager(table_name=table_name, db=db)
 
     def update_daily_stock_data(self, list_of_timestamped_data: list):
+        # TODO Untested code
         """
         Accepts a list of dictionaries of timestamped OHLCVTV data
         Returns: tuple with the new date available from and date available to
