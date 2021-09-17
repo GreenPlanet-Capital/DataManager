@@ -113,6 +113,18 @@ class DailyDataTableManager:
         order_by = 'timestamp'
         daily_data = self.db.select_between_range(self.table_name, criteria, order_by).fetchall()
         return _Conversions().tuples_to_dict(daily_data, self.columns)
+
+    def get_dates_for_available_data(self):
+        def get_date_available_from(self):
+            return self.db.select_min_value_from_column(self.table_name, 'timestamp')
+
+        def get_date_available_to(self):
+            return self.db.select_max_value_from_column(self.table_name, 'timestamp')
+
+        return get_date_available_from(), get_date_available_to()
+
+    def _update_one_day_data(self, timestamp_ohlc_dict):
+        self.db.update(self.table_name, {'timestamp': timestamp_ohlc_dict['timestamp']}, timestamp_ohlc_dict)
     
 
 class _Conversions:
@@ -147,5 +159,5 @@ if '__main__'==__name__:
 
     db = DatabaseManager(f'{os.path.join("tempDir", "Stock_DataDB.db")}')
     daily_data_table = DailyDataTableManager('TEST_SYMBOL_TABLE', db)
-    a = daily_data_table.get_data('2021-09-17 21:45:38.745294+00:00', '2021-09-19 21:45:38.745294+00:00'), 
+    a = daily_data_table.get_data('2021-09-12', '2021-09-20') 
     print()

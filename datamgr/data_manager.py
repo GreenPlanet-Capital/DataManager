@@ -1,11 +1,11 @@
+from database_layer.database import DatabaseManager
 from datetime import datetime, timezone
 import sys
 import os
-import dataset
 
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
 from assetmgr.asset_manager import Assets
-from database_layer.tables import MainTableManager
+from database_layer.tables import DailyDataTableManager, MainTableManager
 
 def DataManager():
     def __init__(self):
@@ -45,13 +45,19 @@ class MainStocks:
         self.table_manager.insert_asset(asset_data)
 
 
-class _SubTableManager:
-    def __init__(self, db_name='Stock_DataDB.db', testmode=False):
-        self.db_connection = dataset.connect(f'sqlite:///{os.path.join("tempDir", db_name)}')
+class DailyStockDataTable:
+    def __init__(self, table_name, db: DatabaseManager):
+        self.table_manager = DailyDataTableManager(table_name=table_name, db=db)
 
+    def update_daily_stock_data(self, list_of_timestamped_data: list):
+        """
+        Accepts a list of dictionaries of timestamped OHLCVTV data
+        Returns: tuple with the new date available from and date available to
+        """
+        for timestamp_ohlc_dict in list_of_timestamped_data:
+            self.table_manager.insert_data(timestamp_ohlc_dict)
 
-class _SubTable:
-    pass
+        return self.table_manager.get_dates_for_available_data()
 
 
 if __name__ == '__main__':

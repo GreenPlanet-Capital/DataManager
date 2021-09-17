@@ -92,7 +92,19 @@ class DatabaseManager:
         return self._execute(
             query,
             values,
-        )        
+        )       
+
+    def select_max_value_from_column(self, table_name, column):
+         query = f'SELECT MAX({column}) FROM {table_name}'
+         return self._execute(
+            query
+        )
+    
+    def select_min_value_from_column(self, table_name, column):
+         query = f'SELECT MIN({column}) FROM {table_name}'
+         return self._execute(
+            query
+        )
     
     def list_tables(self):
         query = """SELECT name
