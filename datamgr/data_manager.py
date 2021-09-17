@@ -59,6 +59,10 @@ class DailyStockTables:
             dataAvailableFrom, dataAvailableTo = daily_stock_table.update_daily_stock_data(records)
             self.main_stocks.update_stock_symbol_main_table(stockSymbol=stock_symbol, dataAvailableFrom=dataAvailableFrom, dataAvailableTo=dataAvailableTo)
 
+    def get_daily_stock_data(self, list_of_symbols, start_timestamp, end_timestamp):
+        # TODO
+        pass
+
 
     
 
