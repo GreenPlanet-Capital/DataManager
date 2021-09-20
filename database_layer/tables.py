@@ -1,9 +1,12 @@
+from datetime import timedelta
+from sqlite3.dbapi2 import Time
 import sys
 import os
 
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
 from database_layer.database import DatabaseManager
 from utils.conversions import _Conversions
+from utils.timehandler import TimeHandler
 
 
 class TableManager:
@@ -80,7 +83,36 @@ class MainTableManager(TableManager):
             'dataAvailableTo': 'text',
             'dateLastUpdated': 'text not null',
         }
-        self.table = self.create_asset_table(self.table_name, self.columns)
+        self.create_asset_table(self.table_name, self.columns)
+
+    def check_data_availability(self, stock_symbol, start_timestamp, end_timestamp):
+        start_timestamp = TimeHandler.get_datetime_from_string(start_timestamp)
+        end_timestamp = TimeHandler.get_datetime_from_string(end_timestamp)
+
+        dataAvailableFrom = TimeHandler.get_datetime_from_string(
+                            self.db.select_column_value(self.table_name, stock_symbol, 'dataAvailableFrom').fetchall()
+                            )
+        dataAvailableTo = TimeHandler.get_datetime_from_string(
+                            self.db.select_column_value(self.table_name, stock_symbol, 'dataAvailableTo').fetchall()
+                            )
+
+        start_time_delta = dataAvailableFrom - start_timestamp
+        end_time_delta = end_timestamp - dataAvailableTo
+
+        required_start_timestamp, required_end_timestamp  = None, None
+
+        if start_time_delta.days>0:
+            required_start_timestamp = dataAvailableFrom - timedelta(days=1)
+        if end_time_delta>0:
+            required_end_timestamp = dataAvailableTo + timedelta(days=1)
+
+        return (required_start_timestamp, required_end_timestamp)
+
+        
+
+        
+
+        return _Conversions().tuples_to_dict(daily_data, self.columns)
 
 
 class DailyDataTableManager:
@@ -146,10 +178,10 @@ if '__main__' == __name__:
         'isShortable': 1,
         'isSuspended': 0,
     }
-    # asset_table.insert_asset(data)
+    asset_table.insert_asset(data)
     # asset_table.update_asset(data)
-    # output = asset_table.get_exchange_basket(exchangeName='TEST_EXCHANGE')
-    # output = asset_table.get_assets_list()
+    output = asset_table.get_exchange_basket(exchangeName='TEST_EXCHANGE')
+    output = asset_table.get_assets_list()
     # output = asset_table.get_all_tradable_symbols()
 
     db = DatabaseManager(f'{os.path.join("tempDir", "Stock_DataDB.db")}')

@@ -4,6 +4,7 @@ import os
 import warnings
 import numpy as np
 import pandas as pd
+from alpaca_trade_api.rest import TimeFrame
 
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
 from database_layer.database import DatabaseManager
@@ -11,11 +12,39 @@ from assetmgr.asset_manager import Assets
 from database_layer.tables import DailyDataTableManager, MainTableManager
 from utils.conversions import _Conversions
 from utils.timehandler import TimeHandler
+from assetmgr.asset_manager import Assets
+from datamgr.data_extractor import DataExtractor
 
 
-def DataManager():
-    def __init__(self):
-        pass
+class DataManager:
+    def __init__(self, exchange_name, asset_db_name='AssetDB.db', stock_db_name = 'Stock_DataDB.db', update_before=True):
+        self.assets = Assets(asset_db_name)
+        self.main_stocks = MainStocks(stock_db_name, self.assets)
+        self.extractor = DataExtractor()
+        if update_before:
+            self.assets.update_all_dbs()
+            
+        self.exchange_basket =  [row_dict['stockSymbol'] for row_dict in self.assets.asset_table_manager.get_exchange_basket(exchange_name, isDelisted=False, isSuspended=False)]
+        print()
+
+    def get_stock_data(self, start_timestamp, end_timestamp):
+        
+        for stock in self.exchange_basket:
+            self.get_one_stock_data(stock, start_timestamp, end_timestamp)
+            
+    
+    def get_one_stock_data(self, stock_symbol, start_timestamp, end_timestamp, api='Alpaca'):
+        req_start, req_end = self.main_stocks.table_manager.check_data_availability(stock_symbol, start_timestamp, end_timestamp)
+        if req_start:
+            df_start = getattr(self.extractor, f'getOneHistorical{api}')(stock_symbol, 
+            TimeHandler.get_string_from_datetime(start_timestamp), 
+            TimeHandler.get_string_from_datetime(req_start),
+            TimeFrame.Day
+            )
+            #TODO update subtable and req_end
+
+
+
 
 
 class MainStocks:
@@ -84,9 +113,9 @@ class DailyStockDataTable:
     def __init__(self, table_name, db: DatabaseManager):
         self.table_manager = DailyDataTableManager(table_name=table_name, db=db)
 
-    def update_daily_stock_data(self, list_of_timestamped_data: ()):
+    def update_daily_stock_data(self, list_of_timestamped_data: tuple):
         """
-        Accepts a list of dictionaries of timestamped OHLCVTV data
+        Accepts a tuple of dictionaries of timestamped OHLCVTV data
         Returns: tuple with the new date available from and date available to
         """
         for timestamp_ohlc_dict in list_of_timestamped_data:
@@ -103,45 +132,50 @@ class DailyStockDataTable:
 
 
 if __name__ == '__main__':
+
+    data = DataManager('NYSE', update_before=False)
+    print()
+
+
     # assets = Assets('AssetDB.db')
     # main_stocks = MainStocks('Stock_DataDB.db', assets)
     # main_stocks.repopulate_all_assets()
-    dbAddr = f'{os.path.join("tempDir", "Stock_DataDB_Test.db")}'
-    db_manager = DatabaseManager(dbAddr)
-    test_symbol_stock_table = DailyStockDataTable('TEST_SYMBOL_TWO', db_manager)
-    main_stocks = MainStocks('Stock_DataDB_Test.db')
+    # dbAddr = f'{os.path.join("tempDir", "Stock_DataDB_Test.db")}'
+    # db_manager = DatabaseManager(dbAddr)
+    # test_symbol_stock_table = DailyStockDataTable('TEST_SYMBOL_TWO', db_manager)
+    # main_stocks = MainStocks('Stock_DataDB_Test.db')
 
-    listTimestampedData = ({'timestamp': '2021-01-01',
-                            'open': 150.5655,
-                            'high': 155.5655,
-                            'low': 145.5909,
-                            'close': 148.5390,
-                            'volume': 2003940,
-                            'trade_count': 45000,
-                            'vwap': None,
-                            },
-                           {'timestamp': '2021-01-02',
-                            'open': 152.5655,
-                            'high': 157.5655,
-                            'low': 147.5909,
-                            'close': 150.5390,
-                            'volume': 345_000,
-                            'trade_count': 50_000,
-                            'vwap': None, },
-                           {'timestamp': '2021-01-03',
-                            'open': 154.5655,
-                            'high': 159.5655,
-                            'low': 149.5909,
-                            'close': 151.5390,
-                            'volume': 100_000,
-                            'trade_count': 35_000,
-                            'vwap': None, },
-                           )
-    dFrom, dTo = test_symbol_stock_table.update_daily_stock_data(
-        list_of_timestamped_data=listTimestampedData)
-    main_stocks.update_stock_symbol_main_table(test_symbol_stock_table.table_manager.table_name,
-                                               dataAvailableFrom=dFrom, dataAvailableTo=dTo)
+    # listTimestampedData = ({'timestamp': '2021-01-01',
+    #                         'open': 150.5655,
+    #                         'high': 155.5655,
+    #                         'low': 145.5909,
+    #                         'close': 148.5390,
+    #                         'volume': 2003940,
+    #                         'trade_count': 45000,
+    #                         'vwap': None,
+    #                         },
+    #                        {'timestamp': '2021-01-02',
+    #                         'open': 152.5655,
+    #                         'high': 157.5655,
+    #                         'low': 147.5909,
+    #                         'close': 150.5390,
+    #                         'volume': 345_000,
+    #                         'trade_count': 50_000,
+    #                         'vwap': None, },
+    #                        {'timestamp': '2021-01-03',
+    #                         'open': 154.5655,
+    #                         'high': 159.5655,
+    #                         'low': 149.5909,
+    #                         'close': 151.5390,
+    #                         'volume': 100_000,
+    #                         'trade_count': 35_000,
+    #                         'vwap': None, },
+    #                        )
+    # dFrom, dTo = test_symbol_stock_table.update_daily_stock_data(
+    #     list_of_timestamped_data=listTimestampedData)
+    # main_stocks.update_stock_symbol_main_table(test_symbol_stock_table.table_manager.table_name,
+    #                                            dataAvailableFrom=dFrom, dataAvailableTo=dTo)
 
-    allStockTables = DailyStockTables(dbAddr, main_stocks)
-    allStockTables.get_daily_stock_data(['TEST_SYMBOL_TWO'], '2021-01-01', '2021-01-03')
-    print()
+    # allStockTables = DailyStockTables(dbAddr, main_stocks)
+    # allStockTables.get_daily_stock_data(['TEST_SYMBOL_TWO'], '2021-01-01', '2021-01-03')
+
