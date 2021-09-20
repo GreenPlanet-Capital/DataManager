@@ -4,6 +4,7 @@ sys.path.insert(0, os.getcwd())  # Resolve Importing errors=
 from assetmgr.asset_extractor import AssetExtractor
 from datetime import datetime, timezone
 from database_layer.tables import AssetTableManager
+from utils.timehandler import TimeHandler
 
 
 class Assets:
@@ -44,7 +45,7 @@ class Assets:
 
     def insert_assets_into_db(self, asset_data):
         # TODO Ensure that at the end of an updation cycle that no isDelisted=Null, isShortable=Null exist
-        asset_data['dateLastUpdated'] = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+        asset_data['dateLastUpdated'] = TimeHandler.get_string_from_datetime(datetime.now(timezone.utc))
         returned_Asset = self.asset_table_manager.get_one_asset(asset_data['stockSymbol'])
         if not returned_Asset:
             self.asset_table_manager.insert_asset(asset_data)

@@ -10,6 +10,7 @@ from database_layer.database import DatabaseManager
 from assetmgr.asset_manager import Assets
 from database_layer.tables import DailyDataTableManager, MainTableManager
 from utils.conversions import _Conversions
+from utils.timehandler import TimeHandler
 
 
 def DataManager():
@@ -32,7 +33,7 @@ class MainStocks:
         asset_data = {'stockSymbol': stockSymbol,
                       'dataAvailableFrom': dataAvailableFrom,
                       'dataAvailableTo': dataAvailableTo,
-                      'dateLastUpdated': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+                      'dateLastUpdated': TimeHandler.get_string_from_datetime(datetime.now(timezone.utc))
                       }
         main_asset_data = self.table_manager.get_one_asset(stockSymbol)
         if main_asset_data:
@@ -83,17 +84,15 @@ class DailyStockDataTable:
     def __init__(self, table_name, db: DatabaseManager):
         self.table_manager = DailyDataTableManager(table_name=table_name, db=db)
 
-    def update_daily_stock_data(self, list_of_timestamped_data: list):
+    def update_daily_stock_data(self, list_of_timestamped_data: ()):
         """
         Accepts a list of dictionaries of timestamped OHLCVTV data
         Returns: tuple with the new date available from and date available to
         """
         for timestamp_ohlc_dict in list_of_timestamped_data:
             if isinstance(timestamp_ohlc_dict['timestamp'], np.datetime64):
-                # TODO Make a Dates Utility Class to transform any kind of date to '%Y-%m-%d %H:%M:%S' and vice-versa
-                timestamp_ohlc_dict['timestamp'] = datetime.utcfromtimestamp(
-                    (timestamp_ohlc_dict['timestamp'] - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
-                ).strftime('%Y-%m-%d %H:%M:%S')
+                timestamp_ohlc_dict['timestamp'] = \
+                    TimeHandler.get_string_from_datetime64(timestamp_ohlc_dict['timestamp'])
             if not self.table_manager.get_one_day_data(timestamp_ohlc_dict['timestamp']):
                 self.table_manager.insert_data(timestamp_ohlc_dict)
             else:
@@ -112,40 +111,34 @@ if __name__ == '__main__':
     test_symbol_stock_table = DailyStockDataTable('TEST_SYMBOL_TWO', db_manager)
     main_stocks = MainStocks('Stock_DataDB_Test.db')
 
-    list_of_timestamped_data = ({'timestamp': '2021-01-01',
-                                 'open': 150.5655,
-                                 'high': 155.5655,
-                                 'low': 145.5909,
-                                 'close': 148.5390,
-                                 'volume': 2003940,
-                                 'trade_count': 45000,
-                                 'vwap': None, 'timestamp': '2021-01-01',
-                                 'open': 150.5655,
-                                 'high': 155.5655,
-                                 'low': 145.5909,
-                                 'close': 148.5390,
-                                 'volume': 2003940,
-                                 'trade_count': 45000,
-                                 'vwap': None, },
-                                {'timestamp': '2021-01-02',
-                                 'open': 152.5655,
-                                 'high': 157.5655,
-                                 'low': 147.5909,
-                                 'close': 150.5390,
-                                 'volume': 345_000,
-                                 'trade_count': 50_000,
-                                 'vwap': None, },
-                                {'timestamp': '2021-01-03',
-                                 'open': 154.5655,
-                                 'high': 159.5655,
-                                 'low': 149.5909,
-                                 'close': 151.5390,
-                                 'volume': 100_000,
-                                 'trade_count': 35_000,
-                                 'vwap': None, },
-                                )
+    listTimestampedData = ({'timestamp': '2021-01-01',
+                            'open': 150.5655,
+                            'high': 155.5655,
+                            'low': 145.5909,
+                            'close': 148.5390,
+                            'volume': 2003940,
+                            'trade_count': 45000,
+                            'vwap': None,
+                            },
+                           {'timestamp': '2021-01-02',
+                            'open': 152.5655,
+                            'high': 157.5655,
+                            'low': 147.5909,
+                            'close': 150.5390,
+                            'volume': 345_000,
+                            'trade_count': 50_000,
+                            'vwap': None, },
+                           {'timestamp': '2021-01-03',
+                            'open': 154.5655,
+                            'high': 159.5655,
+                            'low': 149.5909,
+                            'close': 151.5390,
+                            'volume': 100_000,
+                            'trade_count': 35_000,
+                            'vwap': None, },
+                           )
     dFrom, dTo = test_symbol_stock_table.update_daily_stock_data(
-        list_of_timestamped_data=list_of_timestamped_data)
+        list_of_timestamped_data=listTimestampedData)
     main_stocks.update_stock_symbol_main_table(test_symbol_stock_table.table_manager.table_name,
                                                dataAvailableFrom=dFrom, dataAvailableTo=dTo)
 
