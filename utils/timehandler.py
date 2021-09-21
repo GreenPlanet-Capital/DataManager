@@ -1,4 +1,5 @@
 from datetime import datetime
+from time import strftime
 import numpy as np
 
 
@@ -19,3 +20,7 @@ class TimeHandler:
     @staticmethod
     def get_datetime64_from_string(inputString: str) -> np.datetime64:
         return np.datetime64(inputString)
+
+    @staticmethod
+    def get_alpaca_string_from_string(inputString: str) -> str:
+        return (datetime.strptime(inputString, '%Y-%m-%d %H:%M:%S')).strftime('%Y-%m-%d')

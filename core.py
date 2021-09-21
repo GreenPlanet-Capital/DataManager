@@ -15,7 +15,7 @@ IEXAuth = {
     'PublicKey': configParse.get('IEX_Real', 'IEX_Public'),
     'PrivateKey': configParse.get('IEX_Real', 'IEX_Private'),
 }
-SANDBOX = configParse.get('Globals', 'UseSanbox')
+SANDBOX = configParse.get('Globals', 'UseSandbox')
 
 
 def setEnv():

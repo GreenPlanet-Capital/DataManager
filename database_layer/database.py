@@ -107,7 +107,7 @@ class DatabaseManager:
         )
 
     def select_column_value(self, table_name, stock_symbol, column):
-         query = f'SELECT {column} FROM {table_name} WHERE stockSymbol={stock_symbol}'
+         query = f"SELECT {column} FROM {table_name} WHERE stockSymbol='{stock_symbol}'"
          return self._execute(
             query
         )
