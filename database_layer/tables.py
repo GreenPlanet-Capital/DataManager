@@ -90,10 +90,10 @@ class MainTableManager(TableManager):
         end_timestamp = TimeHandler.get_datetime_from_string(end_timestamp)
 
         dataAvailableFrom = TimeHandler.get_datetime_from_string(
-                            self.db.select_column_value(self.table_name, stock_symbol, 'dataAvailableFrom').fetchall()
+                            self.db.select_column_value(self.table_name, stock_symbol, 'dataAvailableFrom').fetchall()[0][0]
                             )
         dataAvailableTo = TimeHandler.get_datetime_from_string(
-                            self.db.select_column_value(self.table_name, stock_symbol, 'dataAvailableTo').fetchall()
+                            self.db.select_column_value(self.table_name, stock_symbol, 'dataAvailableTo').fetchall()[0][0]
                             )
 
         start_time_delta = dataAvailableFrom - start_timestamp
@@ -103,7 +103,7 @@ class MainTableManager(TableManager):
 
         if start_time_delta.days>0:
             required_start_timestamp = dataAvailableFrom - timedelta(days=1)
-        if end_time_delta>0:
+        if end_time_delta.days>0:
             required_end_timestamp = dataAvailableTo + timedelta(days=1)
 
         return (required_start_timestamp, required_end_timestamp)
