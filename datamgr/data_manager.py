@@ -17,34 +17,45 @@ from datamgr.data_extractor import DataExtractor
 
 
 class DataManager:
-    def __init__(self, exchange_name, asset_db_name='AssetDB.db', stock_db_name = 'Stock_DataDB.db', update_before=True):
+    def __init__(self, exchange_name, asset_db_name='AssetDB.db', stock_db_name='Stock_DataDB.db', update_before=True):
         self.assets = Assets(asset_db_name)
         self.main_stocks = MainStocks(stock_db_name, self.assets)
         self.extractor = DataExtractor()
         if update_before:
             self.assets.update_all_dbs()
-            
-        self.exchange_basket =  [row_dict['stockSymbol'] for row_dict in self.assets.asset_table_manager.get_exchange_basket(exchange_name, isDelisted=False, isSuspended=False)]
+
+        self.exchange_basket = [row_dict['stockSymbol'] for row_dict in
+                                self.assets.asset_table_manager.get_exchange_basket(exchange_name, isDelisted=False,
+                                                                                    isSuspended=False)]
+        self.required_symbols_data, self.required_dates = [], []
         print()
 
-    def get_stock_data(self, start_timestamp, end_timestamp):
-        
+    def reset_required_vars(self):
+        self.required_symbols_data, self.required_dates = [], []
+
+    def get_stock_data(self, start_timestamp, end_timestamp, api='Alpaca'):
+
         for stock in self.exchange_basket:
             self.get_one_stock_data(stock, start_timestamp, end_timestamp)
-            
-    
-    def get_one_stock_data(self, stock_symbol, start_timestamp, end_timestamp, api='Alpaca'):
-        req_start, req_end = self.main_stocks.table_manager.check_data_availability(stock_symbol, start_timestamp, end_timestamp)
+
+        list_dicts = getattr(self.extractor, f'getMultipleListHistorical{api}')(self.required_symbols_data,
+                                                                                self.required_dates, TimeFrame.Day)
+        print()
+        self.reset_required_vars()
+        self.extractor.AsyncObj.reset_async_list()
+
+    def get_one_stock_data(self, stock_symbol, start_timestamp, end_timestamp):
+        req_start, req_end = self.main_stocks.table_manager.check_data_availability(stock_symbol, start_timestamp,
+                                                                                    end_timestamp)
         if req_start:
-            df_start = getattr(self.extractor, f'getOneHistorical{api}')(stock_symbol, 
-            TimeHandler.get_string_from_datetime(start_timestamp), 
-            TimeHandler.get_string_from_datetime(req_start),
-            TimeFrame.Day
-            )
-            #TODO update subtable and req_end
+            self.required_symbols_data.append(stock_symbol)
+            self.required_dates.append((TimeHandler.get_string_from_datetime(start_timestamp),
+                                        TimeHandler.get_string_from_datetime(req_start)))
 
-
-
+        if req_end:
+            self.required_symbols_data.append(stock_symbol)
+            self.required_dates.append((TimeHandler.get_string_from_datetime(req_end),
+                                        TimeHandler.get_string_from_datetime(end_timestamp)))
 
 
 class MainStocks:
@@ -132,14 +143,16 @@ class DailyStockDataTable:
 
 
 if __name__ == '__main__':
-
-    data = DataManager('NYSE', update_before=False)
-    print()
-
-
-    # assets = Assets('AssetDB.db')
+    assets = Assets('AssetDB.db')
+    # assets.update_all_dbs()
     # main_stocks = MainStocks('Stock_DataDB.db', assets)
     # main_stocks.repopulate_all_assets()
+
+    data = DataManager('NYSE', update_before=False)
+    data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2017, 6, 1)),
+                        TimeHandler.get_string_from_datetime(datetime(2017, 7, 1)))
+    print()
+
     # dbAddr = f'{os.path.join("tempDir", "Stock_DataDB_Test.db")}'
     # db_manager = DatabaseManager(dbAddr)
     # test_symbol_stock_table = DailyStockDataTable('TEST_SYMBOL_TWO', db_manager)
@@ -178,4 +191,3 @@ if __name__ == '__main__':
 
     # allStockTables = DailyStockTables(dbAddr, main_stocks)
     # allStockTables.get_daily_stock_data(['TEST_SYMBOL_TWO'], '2021-01-01', '2021-01-03')
-

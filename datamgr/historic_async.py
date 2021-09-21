@@ -27,7 +27,10 @@ class HistoricalAsync:
                                  secret_key=api_secret,
                                  base_url=URL(base_url))
 
-        self.resultAsync = ()
+        self.resultAsync = []
+
+    def reset_async_list(self):
+        self.resultAsync = []
 
     def get_data_method(self, data_type: DataType):
         if data_type == DataType.Bars:
@@ -84,8 +87,8 @@ class HistoricalAsync:
         return results
 
     async def get_historic_bars(self, symbols, start, end, timeframe: TimeFrame, adjustmentInput='raw'):
-        self.resultAsync = await self.get_historic_data_base(symbols, DataType.Bars, start, end, timeframe,
-                                                             adjustmentInput)
+        self.resultAsync.append(await self.get_historic_data_base(symbols, DataType.Bars, start, end, timeframe,
+                                                                  adjustmentInput))
 
     async def get_historic_trades(self, symbols, start, end, timeframe: TimeFrame):
         await self.get_historic_data_base(symbols, DataType.Trades, start, end)
