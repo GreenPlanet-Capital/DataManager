@@ -1,6 +1,7 @@
 from datetime import datetime
 from time import strftime
 import numpy as np
+from pandas import Timestamp
 
 
 class TimeHandler:
@@ -24,3 +25,11 @@ class TimeHandler:
     @staticmethod
     def get_alpaca_string_from_string(inputString: str) -> str:
         return (datetime.strptime(inputString, '%Y-%m-%d %H:%M:%S')).strftime('%Y-%m-%d')
+
+    @staticmethod
+    def get_alpaca_string_from_datetime(datetimeInput: datetime):
+        return datetimeInput.strftime('%Y-%m-%d')
+
+    @staticmethod
+    def get_string_from_timestamp(timestampInput: Timestamp):
+        return TimeHandler.get_alpaca_string_from_datetime(timestampInput.date())

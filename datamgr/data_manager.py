@@ -21,12 +21,16 @@ class DataManager:
         self.assets = Assets(asset_db_name)
         self.main_stocks = MainStocks(stock_db_name, self.assets)
         self.extractor = DataExtractor()
+        self.daily_stocks = DailyStockTables(self.main_stocks)
         if update_before:
             self.assets.update_all_dbs()
 
-        self.exchange_basket = [row_dict['stockSymbol'] for row_dict in
-                                self.assets.asset_table_manager.get_exchange_basket(exchange_name, isDelisted=False,
-                                                                                    isSuspended=False)]
+        if exchange_name == 'all':
+            self.exchange_basket = self.assets.asset_table_manager.get_all_tradable_symbols()[:50]
+        else:
+            self.exchange_basket = [row_dict['stockSymbol'] for row_dict in
+                                    self.assets.asset_table_manager.get_exchange_basket(exchange_name, isDelisted=False,
+                                                                                        isSuspended=False)]
         self.required_symbols_data, self.required_dates = [], []
         print()
 
@@ -38,16 +42,16 @@ class DataManager:
         for stock in self.exchange_basket:
             self.get_one_stock_data(stock, start_timestamp, end_timestamp)
 
-        list_dicts = getattr(self.extractor, f'getMultipleListHistorical{api}')(self.required_symbols_data,
+        list_tuples = getattr(self.extractor, f'getMultipleListHistorical{api}')(self.required_symbols_data,
                                                                                 self.required_dates, TimeFrame.Day)
-        print()
+        self.daily_stocks.update_daily_stock_data(list_tuples)
         self.reset_required_vars()
         self.extractor.AsyncObj.reset_async_list()
 
     def get_one_stock_data(self, stock_symbol, start_timestamp, end_timestamp):
         statusTimestamp, req_start, req_end = self.main_stocks.table_manager.check_data_availability(stock_symbol,
                                                                                                      start_timestamp,
-                                                                                                    end_timestamp)
+                                                                                                     end_timestamp)
 
         if statusTimestamp:
             if req_start:
@@ -59,7 +63,7 @@ class DataManager:
             if req_end:
                 self.required_symbols_data.append(stock_symbol)
                 self.required_dates.append((TimeHandler.get_alpaca_string_from_string(
-                                                                            TimeHandler.get_string_from_datetime(req_end)),
+                    TimeHandler.get_string_from_datetime(req_end)),
                                             TimeHandler.get_alpaca_string_from_string(end_timestamp)))
         else:
             self.required_symbols_data.append(stock_symbol)
@@ -96,9 +100,9 @@ class MainStocks:
 
 
 class DailyStockTables:
-    def __init__(self, db_path, main_stocks: MainStocks):
-        self.db = DatabaseManager(database_path=db_path)
+    def __init__(self, main_stocks: MainStocks):
         self.main_stocks = main_stocks
+        self.db = self.main_stocks.table_manager.db
 
     def update_daily_stock_data(self, list_of_tuples: list):
         """
@@ -153,11 +157,11 @@ class DailyStockDataTable:
 
 if __name__ == '__main__':
     assets = Assets('AssetDB.db')
-    assets.update_db_alpaca_assets()
-    main_stocks = MainStocks('Stock_DataDB.db', assets)
-    main_stocks.repopulate_all_assets()
+    # assets.update_db_alpaca_assets()
+    # main_stocks = MainStocks('Stock_DataDB.db', assets)
+    # main_stocks.repopulate_all_assets()
 
-    data = DataManager('NYSE', update_before=False)
+    data = DataManager('all', update_before=False)
     data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2017, 6, 1)),
                         TimeHandler.get_string_from_datetime(datetime(2017, 7, 1)))
     print()
