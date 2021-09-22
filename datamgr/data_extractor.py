@@ -1,9 +1,12 @@
+import copy
 from datetime import datetime
 import sys
 import os
 from alpaca_trade_api.rest import REST, TimeFrame
 import asyncio
 import time
+import pandas_market_calendars as mcal
+from utils.timehandler import TimeHandler
 
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
 from assetmgr.asset_manager import Assets
@@ -25,50 +28,94 @@ class DataExtractor:
     def callHistoricalAlpaca(self, listSymbols, dateFrom, dateTo, timeframe: TimeFrame, adjustment='all'):
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.AsyncObj.get_historic_bars(listSymbols, dateFrom, dateTo, timeframe, adjustment))
-        return self.AsyncObj.resultAsync[0]
+        to_return = copy.deepcopy(self.AsyncObj.resultAsync)
+        self.AsyncObj.reset_async_list()
+        return to_return
 
     def callHistoricalMultipleAlpaca(self, listSymbols, list_dates, timeframe: TimeFrame, adjustment='all'):
         loop = asyncio.get_event_loop()
-        list_async_objects = []
-
-        for symbol, date_pair in zip(listSymbols, list_dates):
-            list_async_objects.append(self.AsyncObj.get_historic_bars([symbol], date_pair[0], date_pair[1],
-                                                                      timeframe, adjustment))
-
-        for async_obj in list_async_objects:
-            loop.run_until_complete(async_obj)
-
-        return self.AsyncObj.resultAsync
+        loop.run_until_complete(self.AsyncObj.get_multiple_dates_historic_bars(listSymbols, list_dates, timeframe,
+                                                                               adjustment))
+        to_return = copy.deepcopy(self.AsyncObj.resultAsync)
+        self.AsyncObj.reset_async_list()
+        return to_return
 
     # TODO - Clean up getList methods
     def getMultipleListHistoricalAlpaca(self, listSymbols, listDates, timeframe: TimeFrame, adjustment='all',
-                                        maxRetries=3):
-        totalLength = []
-        for datePair in listDates:
-            totalLength.append(self.AlpacaAPI.get_calendar(datePair[0], datePair[1]))
-
-        if max([len(dates) for dates in totalLength]) > 1000:
+                                        exchange_name='NYSE', maxRetries=3):
+        # TODO: Put sorting in helper function
+        listSymbols, listDates = (list(t) for t in zip(*sorted(zip(listSymbols, listDates),
+                                                               key=lambda x: (x[0], x[1][0]))))
+        date_ranges = {}
+        thisExchange = mcal.get_calendar(exchange_name)
+        for i, datePair in enumerate(listDates):
+            if listSymbols[i] in date_ranges:
+                date_ranges[listSymbols[i]].append(thisExchange.valid_days(datePair[0], datePair[1]))
+            else:
+                date_ranges[listSymbols[i]] = [thisExchange.valid_days(datePair[0], datePair[1])]
+        len_list_dates = ([len(dates[0]) for dates in list(date_ranges.values())])
+        if max(len_list_dates) > 1000:
             raise Exception('Alpaca only has data on past 5 years')
 
         currentRetries = 0
-        thisListSymbols = set(listSymbols)
-        initialDfs = []
-        while currentRetries <= maxRetries and len(thisListSymbols) != 0:
-            currentOutput = self.callHistoricalMultipleAlpaca(list(thisListSymbols), listDates, timeframe, adjustment)
-            self.AsyncObj.reset_async_list()
-            initialDfs.extend([e for e in currentOutput if not isinstance(e, Exception)])
-            thisSucceededStocks = set([f.__getitem__(0)[0] for f in currentOutput if not isinstance(f, Exception)])
-            thisListSymbols = thisListSymbols.difference(thisSucceededStocks)
+        this_list_symbols = listSymbols
+        this_list_dates = listDates
+        initial_list = []
+        partial_df = []
+
+        while currentRetries <= maxRetries and len(this_list_symbols) != 0:
+            current_output = self.callHistoricalMultipleAlpaca(list(this_list_symbols), this_list_dates, timeframe,
+                                                               adjustment)
+            cleaned_output = []
+            for elem in current_output:
+                if not isinstance(elem, Exception):
+                    if not elem[1].empty:
+                        cleaned_output.append(elem)
+                    else:
+                        partial_df.append(elem)
+
+            cleaned_output.sort(key=lambda x: (x[0], TimeHandler.get_string_from_timestamp(x[1].index[0])))
+            initial_list.extend(cleaned_output)
+
+            iterator_cleaned = 0
+            symbols_failed, dates_failed = [], []
+            for current_symbol in this_list_symbols:
+                list_dates = date_ranges[current_symbol]
+
+                list_dates1 = (TimeHandler.get_string_from_timestamp(list_dates[0][0]),
+                               TimeHandler.get_string_from_timestamp(list_dates[0][-1]))
+                list_dates2 = (TimeHandler.get_string_from_timestamp(list_dates[-1][0]),
+                               TimeHandler.get_string_from_timestamp(list_dates[-1][-1]))
+                this_cleaned_date_tuple = (
+                    TimeHandler.get_alpaca_string_from_datetime(cleaned_output[iterator_cleaned][1].index[0].date()),
+                    TimeHandler.get_alpaca_string_from_datetime(cleaned_output[iterator_cleaned][1].index[-1].date()))
+                if current_symbol == cleaned_output[iterator_cleaned][0] and this_cleaned_date_tuple in \
+                        [list_dates1, list_dates2]:
+                    iterator_cleaned += 1
+                    continue
+                else:
+                    symbols_failed.append(current_symbol)
+                    dates_failed.append(this_cleaned_date_tuple)
+
             currentRetries += 1
-        validDfs, partialDfs = [], []
+            this_list_symbols = symbols_failed
+            this_list_dates = dates_failed
 
-        for df in initialDfs:
-            if len(df.__getitem__(1).index) != totalLength: # TODO totalLength will not work
-                partialDfs.append(df)
+        validDfs = []
+        partial_df.extend(this_list_symbols)
+
+        for this_symbol, df in initial_list:
+            date_range_item = date_ranges[this_symbol]
+            parsed_first = TimeHandler.get_alpaca_string_from_datetime(df.index[0].date())
+            parsed_last = TimeHandler.get_alpaca_string_from_datetime(df.index[-1].date())
+
+            if parsed_first in [date_range_item[0][0], date_range_item[1][0]] and parsed_last in \
+                    [date_range_item[0][-1], date_range_item[1][-1]]:
+                validDfs.append((this_symbol, df))
             else:
-                validDfs.append(df)
+                partial_df.append((this_symbol, df))
 
-        return validDfs, partialDfs
+        return validDfs, partial_df
 
     def getListHistoricalAlpaca(self, listSymbols, dateFrom, dateTo, timeframe: TimeFrame, adjustment='all',
                                 maxRetries=3):
@@ -82,7 +129,6 @@ class DataExtractor:
         initialDfs = []
         while currentRetries <= maxRetries and len(thisListSymbols) != 0:
             currentOutput = self.callHistoricalAlpaca(list(thisListSymbols), dateFrom, dateTo, timeframe, adjustment)
-            self.AsyncObj.reset_async_list()
             initialDfs.extend([e for e in currentOutput if not isinstance(e, Exception)])
             thisSucceededStocks = set([f.__getitem__(0) for f in currentOutput if not isinstance(f, Exception)])
             thisListSymbols = thisListSymbols.difference(thisSucceededStocks)

@@ -86,9 +86,57 @@ class HistoricalAsync:
 
         return results
 
+    async def get_historic_data_multiple_base(self, symbols, data_type: DataType, list_dates,
+                                              timeframe: TimeFrame = None, adjustmentInput='raw'):
+        """
+        base function to use with all
+        :param adjustmentInput:
+        :param symbols:
+        :param start:
+        :param end:
+        :param timeframe:
+        :return:
+        """
+        major = sys.version_info.major
+        minor = sys.version_info.minor
+        if major < 3 or minor < 6:
+            raise Exception('asyncio is not support in your python version')
+        msg = f"Getting {data_type} data for {len(symbols)} symbols"
+        msg += f", timeframe: {timeframe}" if timeframe else ""
+        msg += f" between dates specified in the list"
+        print(msg)
+
+        tasks = []
+
+        for i, symbol in enumerate(symbols):
+            args = [symbol, list_dates[i][0], list_dates[i][1], timeframe] if timeframe else \
+                [symbol, list_dates[i][0], list_dates[i][1]]
+            tasks.append(self.get_data_method(data_type)(*args, adjustment=adjustmentInput))
+
+        if minor >= 8:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+        else:
+            results = await gather_with_concurrency(500, *tasks)
+
+        bad_requests = 0
+        for response in results:
+            if isinstance(response, Exception):
+                print(f"Got an error: {response}")
+            elif not len(response[1]):
+                bad_requests += 1
+
+        print(f"Total of {len(results)} {data_type}, and {bad_requests} "
+              f"empty responses.")
+
+        return results
+
     async def get_historic_bars(self, symbols, start, end, timeframe: TimeFrame, adjustmentInput='raw'):
-        self.resultAsync.append(await self.get_historic_data_base(symbols, DataType.Bars, start, end, timeframe,
-                                                                  adjustmentInput))
+        self.resultAsync = await self.get_historic_data_base(symbols, DataType.Bars, start, end, timeframe,
+                                                             adjustmentInput)
+
+    async def get_multiple_dates_historic_bars(self, symbols, list_dates, timeframe: TimeFrame, adjustmentInput='raw'):
+        self.resultAsync = await self.get_historic_data_multiple_base(symbols, DataType.Bars, list_dates, timeframe,
+                                                                      adjustmentInput)
 
     async def get_historic_trades(self, symbols, start, end, timeframe: TimeFrame):
         await self.get_historic_data_base(symbols, DataType.Trades, start, end)
