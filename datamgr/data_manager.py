@@ -45,17 +45,26 @@ class DataManager:
         self.extractor.AsyncObj.reset_async_list()
 
     def get_one_stock_data(self, stock_symbol, start_timestamp, end_timestamp):
-        req_start, req_end = self.main_stocks.table_manager.check_data_availability(stock_symbol, start_timestamp,
-                                                                                    end_timestamp)
-        if req_start:
-            self.required_symbols_data.append(stock_symbol)
-            self.required_dates.append((TimeHandler.get_string_from_datetime(start_timestamp),
-                                        TimeHandler.get_string_from_datetime(req_start)))
+        statusTimestamp, req_start, req_end = self.main_stocks.table_manager.check_data_availability(stock_symbol,
+                                                                                                     start_timestamp,
+                                                                                                    end_timestamp)
 
-        if req_end:
+        if statusTimestamp:
+            if req_start:
+                self.required_symbols_data.append(stock_symbol)
+                self.required_dates.append((TimeHandler.get_alpaca_string_from_string(start_timestamp),
+                                            TimeHandler.get_alpaca_string_from_string(
+                                                TimeHandler.get_string_from_datetime(req_start))))
+
+            if req_end:
+                self.required_symbols_data.append(stock_symbol)
+                self.required_dates.append((TimeHandler.get_alpaca_string_from_string(
+                                                                            TimeHandler.get_string_from_datetime(req_end)),
+                                            TimeHandler.get_alpaca_string_from_string(end_timestamp)))
+        else:
             self.required_symbols_data.append(stock_symbol)
-            self.required_dates.append((TimeHandler.get_string_from_datetime(req_end),
-                                        TimeHandler.get_string_from_datetime(end_timestamp)))
+            self.required_dates.append((TimeHandler.get_alpaca_string_from_string(start_timestamp),
+                                        TimeHandler.get_alpaca_string_from_string(end_timestamp)))
 
 
 class MainStocks:
@@ -145,7 +154,7 @@ class DailyStockDataTable:
 if __name__ == '__main__':
     assets = Assets('AssetDB.db')
     # assets.update_all_dbs()
-    # main_stocks = MainStocks('Stock_DataDB.db', assets)
+    main_stocks = MainStocks('Stock_DataDB.db', assets)
     # main_stocks.repopulate_all_assets()
 
     data = DataManager('NYSE', update_before=False)

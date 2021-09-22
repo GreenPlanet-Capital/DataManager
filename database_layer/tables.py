@@ -89,12 +89,14 @@ class MainTableManager(TableManager):
         start_timestamp = TimeHandler.get_datetime_from_string(start_timestamp)
         end_timestamp = TimeHandler.get_datetime_from_string(end_timestamp)
 
-        dataAvailableFrom = TimeHandler.get_datetime_from_string(
-                            self.db.select_column_value(self.table_name, stock_symbol, 'dataAvailableFrom').fetchall()[0][0]
-                            )
-        dataAvailableTo = TimeHandler.get_datetime_from_string(
-                            self.db.select_column_value(self.table_name, stock_symbol, 'dataAvailableTo').fetchall()[0][0]
-                            )
+        fetchDateStart = self.db.select_column_value(self.table_name, stock_symbol, 'dataAvailableFrom').fetchall()[0][0]
+        fetchDateEnd = self.db.select_column_value(self.table_name, stock_symbol, 'dataAvailableTo').fetchall()[0][0]
+
+        if not fetchDateStart or not fetchDateEnd:
+            return False, start_timestamp, end_timestamp
+
+        dataAvailableFrom = TimeHandler.get_datetime_from_string(fetchDateStart)
+        dataAvailableTo = TimeHandler.get_datetime_from_string(fetchDateEnd)
 
         start_time_delta = dataAvailableFrom - start_timestamp
         end_time_delta = end_timestamp - dataAvailableTo
@@ -106,14 +108,7 @@ class MainTableManager(TableManager):
         if end_time_delta.days>0:
             required_end_timestamp = dataAvailableTo + timedelta(days=1)
 
-        return (required_start_timestamp, required_end_timestamp)
-
-        
-
-        
-
-        return _Conversions().tuples_to_dict(daily_data, self.columns)
-
+        return True, required_start_timestamp, required_end_timestamp
 
 class DailyDataTableManager:
 
