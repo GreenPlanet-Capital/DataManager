@@ -35,7 +35,7 @@ class DataExtractor:
             list_async_objects.append(self.AsyncObj.get_historic_bars([symbol], date_pair[0], date_pair[1],
                                                                       timeframe, adjustment))
 
-        for async_obj in list_dates:
+        for async_obj in list_async_objects:
             loop.run_until_complete(async_obj)
 
         return self.AsyncObj.resultAsync
@@ -47,7 +47,7 @@ class DataExtractor:
         for datePair in listDates:
             totalLength.append(self.AlpacaAPI.get_calendar(datePair[0], datePair[1]))
 
-        if max(totalLength) > 1000:
+        if max([len(dates) for dates in totalLength]) > 1000:
             raise Exception('Alpaca only has data on past 5 years')
 
         currentRetries = 0
@@ -57,13 +57,13 @@ class DataExtractor:
             currentOutput = self.callHistoricalMultipleAlpaca(list(thisListSymbols), listDates, timeframe, adjustment)
             self.AsyncObj.reset_async_list()
             initialDfs.extend([e for e in currentOutput if not isinstance(e, Exception)])
-            thisSucceededStocks = set([f.__getitem__(0) for f in currentOutput if not isinstance(f, Exception)])
+            thisSucceededStocks = set([f.__getitem__(0)[0] for f in currentOutput if not isinstance(f, Exception)])
             thisListSymbols = thisListSymbols.difference(thisSucceededStocks)
             currentRetries += 1
         validDfs, partialDfs = [], []
 
         for df in initialDfs:
-            if len(df.__getitem__(1).index) != totalLength:
+            if len(df.__getitem__(1).index) != totalLength: # TODO totalLength will not work
                 partialDfs.append(df)
             else:
                 validDfs.append(df)
@@ -102,7 +102,7 @@ if '__main__' == __name__:
     extractor = DataExtractor()
     manager = Assets()
     start = time.time()
-    sol, partial = extractor.getListHistoricalAlpaca(manager.asset_table_manager.get_all_tradable_symbols(),
+    sol, partial = extractor.getListHistoricalAlpaca(manager.asset_table_manager.get_all_tradable_symbols()[:10],
                                                      datetime(2017, 6, 1).strftime('%Y-%m-%d'),
                                                      datetime(2021, 2, 1).strftime('%Y-%m-%d'),
                                                      TimeFrame.Day)
