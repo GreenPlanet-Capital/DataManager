@@ -153,9 +153,9 @@ class DailyStockDataTable:
 
 if __name__ == '__main__':
     assets = Assets('AssetDB.db')
-    # assets.update_all_dbs()
+    assets.update_db_alpaca_assets()
     main_stocks = MainStocks('Stock_DataDB.db', assets)
-    # main_stocks.repopulate_all_assets()
+    main_stocks.repopulate_all_assets()
 
     data = DataManager('NYSE', update_before=False)
     data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2017, 6, 1)),

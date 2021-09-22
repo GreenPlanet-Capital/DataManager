@@ -41,14 +41,15 @@ class Assets:
         for iterator in range(len(list_of_assets)):
             individualAsset = list_of_assets[iterator]
             asset_data = {'stockSymbol': individualAsset['symbol'], 'companyName': individualAsset['name'],
-                          'exchangeName': individualAsset['exchange'],
+                        #   'exchangeName': individualAsset['exchange'],
                           'region': individualAsset['region'], 'currency': individualAsset['currency']}
             self.insert_assets_into_db(asset_data)
 
     def update_all_dbs(self):
-        list_of_update_methods = [method for method in dir(self) if "update_db_" in method]
-        for update_method in list_of_update_methods:
-            getattr(self, update_method)()
+        self.update_db_alpaca_assets()
+        # list_of_update_methods = [method for method in dir(self) if "update_db_" in method]
+        # for update_method in list_of_update_methods:
+        #     getattr(self, update_method)()
 
 
     def insert_assets_into_db(self, asset_data):
