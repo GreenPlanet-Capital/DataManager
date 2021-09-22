@@ -97,9 +97,9 @@ class MainStocks:
 
 class DailyStockTables:
     def __init__(self, db_path, main_stocks: MainStocks):
-        self.db = DatabaseManager(database_path=db_path)
         self.main_stocks = main_stocks
-
+        self.db = main_stocks.table_manager.db
+    
     def update_daily_stock_data(self, list_of_tuples: list):
         """
         Input: list_of_tuples
