@@ -43,6 +43,10 @@ class DataManager:
         self._required_symbols_data, self._required_dates = [], []
 
     def validate_timestamps(self, start_timestamp, end_timestamp):
+
+        if TimeHandler.get_datetime_from_string(start_timestamp) > TimeHandler.get_datetime_from_string(end_timestamp):
+            raise ValueError('DateOutOfRange: start timestamp cannot be later than end timestamp')
+
         thisExchange = mcal.get_calendar(self._exchange_name)
         date_range = thisExchange.valid_days(TimeHandler.get_alpaca_string_from_string(start_timestamp), TimeHandler.get_alpaca_string_from_string(end_timestamp))
         new_start, new_end = TimeHandler.get_string_from_timestamp(date_range[0]), TimeHandler.get_string_from_timestamp(date_range[-1])
