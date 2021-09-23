@@ -120,7 +120,6 @@ class DataExtractor:
                 validDfs.append((this_symbol, df))
             else:
                 partial_df.append(this_symbol)
-            print()
         print(len(validDfs), len(partial_df))
         return validDfs, partial_df
 
