@@ -97,6 +97,7 @@ class DataManager:
 
         list_tuples, partial_list_symbols = getattr(self._extractor, f'getMultipleListHistorical{api}')(self._required_symbols_data,
                                                                                 self._required_dates, TimeFrame.Day)
+        # TODO len of return not same as len of list_tuples
         self._daily_stocks.update_daily_stock_data(list_tuples)
         self.reset_required_vars()
         self._extractor.AsyncObj.reset_async_list()
@@ -222,14 +223,14 @@ class DailyStockDataTable:
 
 
 if __name__ == '__main__':
-    # assets = Assets('AssetDB.db')
+    assets = Assets('AssetDB.db')
     # assets.update_db_alpaca_assets()
-    # main_stocks = MainStocks('Stock_DataDB.db', assets)
-    # main_stocks.repopulate_all_assets()
+    main_stocks = MainStocks('Stock_DataDB.db', assets)
+    main_stocks.repopulate_all_assets()
 
-    data = DataManager(update_before=False)
+    data = DataManager(update_before=False, limit=500)
     dict_of_dfs = data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2018, 1, 1)),
-                        TimeHandler.get_string_from_datetime(datetime(2021, 7, 1)))
+                        TimeHandler.get_string_from_datetime(datetime(2018, 2, 1)))
     print()
 
     # dbAddr = f'{os.path.join("tempDir", "Stock_DataDB_Test.db")}'
