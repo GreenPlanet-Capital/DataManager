@@ -75,7 +75,7 @@ class DataExtractor:
                         # Appending empty dfs only
                         partial_df.append(elem[0])
 
-            cleaned_output.sort(key=lambda x: (x[0], TimeHandler.get_string_from_timestamp(x[1].index[0])))
+            cleaned_output.sort(key=lambda x: (x[0], TimeHandler.get_alpaca_string_from_timestamp(x[1].index[0])))
             initial_list.extend(cleaned_output)
 
             iterator_cleaned = 0
@@ -85,10 +85,10 @@ class DataExtractor:
                     break
                 list_dates = date_ranges[current_symbol]
 
-                list_dates1 = (TimeHandler.get_string_from_timestamp(list_dates[0][0]),
-                               TimeHandler.get_string_from_timestamp(list_dates[0][-1]))
-                list_dates2 = (TimeHandler.get_string_from_timestamp(list_dates[-1][0]),
-                               TimeHandler.get_string_from_timestamp(list_dates[-1][-1]))
+                list_dates1 = (TimeHandler.get_alpaca_string_from_timestamp(list_dates[0][0]),
+                               TimeHandler.get_alpaca_string_from_timestamp(list_dates[0][-1]))
+                list_dates2 = (TimeHandler.get_alpaca_string_from_timestamp(list_dates[-1][0]),
+                               TimeHandler.get_alpaca_string_from_timestamp(list_dates[-1][-1]))
                 this_cleaned_date_tuple = (
                     TimeHandler.get_alpaca_string_from_datetime(cleaned_output[iterator_cleaned][1].index[0].date()),
                     TimeHandler.get_alpaca_string_from_datetime(cleaned_output[iterator_cleaned][1].index[-1].date()))
@@ -113,10 +113,10 @@ class DataExtractor:
             parsed_first = TimeHandler.get_alpaca_string_from_datetime(df.index[0].date())
             parsed_last = TimeHandler.get_alpaca_string_from_datetime(df.index[-1].date())
 
-            if parsed_first in [TimeHandler.get_string_from_timestamp(date_range_item[0][0]), 
-                                TimeHandler.get_string_from_timestamp(date_range_item[0][-1])] or parsed_last in \
-                                [TimeHandler.get_string_from_timestamp(date_range_item[-1][0]), 
-                                TimeHandler.get_string_from_timestamp(date_range_item[-1][-1])]:
+            if parsed_first in [TimeHandler.get_alpaca_string_from_timestamp(date_range_item[0][0]), 
+                                TimeHandler.get_alpaca_string_from_timestamp(date_range_item[0][-1])] or parsed_last in \
+                                [TimeHandler.get_alpaca_string_from_timestamp(date_range_item[-1][0]), 
+                                TimeHandler.get_alpaca_string_from_timestamp(date_range_item[-1][-1])]:
                 validDfs.append((this_symbol, df))
             else:
                 partial_df.append(this_symbol)

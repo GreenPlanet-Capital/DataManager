@@ -46,7 +46,9 @@ class Assets:
             self.insert_assets_into_db(asset_data)
 
     def update_all_dbs(self):
+        print('Updating Assets Database...')
         self.update_db_alpaca_assets()
+        print('Update completed\n')
         # list_of_update_methods = [method for method in dir(self) if "update_db_" in method]
         # for update_method in list_of_update_methods:
         #     getattr(self, update_method)()

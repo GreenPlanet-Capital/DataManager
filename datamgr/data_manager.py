@@ -44,11 +44,8 @@ class DataManager:
         
         if update_before:
             self._assets.update_all_dbs()
-
-        if 'exchangeName' in criteria:
-            self._exchange_name = criteria['exchangeName']
-        else:
-            self._exchange_name = 'NYSE'
+            # TODO Check significance of updating _main_stocks table
+            self._main_stocks.repopulate_all_assets()
 
         if not 'isDelisted' in criteria:
             criteria['isDelisted'] = False
@@ -56,7 +53,12 @@ class DataManager:
         if not 'isSuspended' in criteria:
             criteria['isSuspended'] = False
         
-        self._basket_of_symbols = self._assets.asset_table_manager.get_symbols_from_criteria(criteria)
+        if not 'exchangeName' in criteria:
+            self._basket_of_symbols = self._assets.asset_table_manager.get_symbols_from_criteria(criteria)
+            self._exchange_name = 'NYSE'
+        else:
+            self._exchange_name = criteria['exchangeName']
+            self._basket_of_symbols = self._assets.asset_table_manager.get_symbols_from_criteria(criteria)
         
         if limit:
             if len(self._basket_of_symbols) > limit:
@@ -131,10 +133,14 @@ class MainStocks:
         self.assets = assets
 
     def repopulate_all_assets(self):
+        print('Updating StockData Main Database...')
+        
         symbols_list = self.assets.asset_table_manager.get_all_tradable_symbols()
 
         for symbol in symbols_list:
             self.update_stock_symbol_main_table(symbol)
+        
+        print('Update completed\n')
 
     def update_stock_symbol_main_table(self, stockSymbol, dataAvailableFrom=None, dataAvailableTo=None):
         asset_data = {'stockSymbol': stockSymbol,
@@ -163,6 +169,8 @@ class DailyStockTables:
         Input: list_of_tuples
         Format: [('SYMBOL1', pandas.Dataframe), ('SYMBOL2', pandas.Dataframe)...]
         """
+
+        print('Updating DailyStockTables Database...')
         # Cannot be threaded
         for stock_symbol, df in list_of_tuples:
             daily_stock_table = DailyStockDataTable(stock_symbol, self.db)
@@ -174,6 +182,8 @@ class DailyStockTables:
             self.main_stocks.update_stock_symbol_main_table(stockSymbol=stock_symbol,
                                                             dataAvailableFrom=dataAvailableFrom,
                                                             dataAvailableTo=dataAvailableTo)
+
+        print('Update completed\n')                                                   
 
     def get_daily_stock_data(self, list_of_symbols, start_timestamp, end_timestamp):
         dictStockData = {}
@@ -212,14 +222,14 @@ class DailyStockDataTable:
 
 
 if __name__ == '__main__':
-    assets = Assets('AssetDB.db')
+    # assets = Assets('AssetDB.db')
     # assets.update_db_alpaca_assets()
     # main_stocks = MainStocks('Stock_DataDB.db', assets)
     # main_stocks.repopulate_all_assets()
 
-    data = DataManager(limit=10, exchangeName = 'NYSE')
-    data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2018, 6, 1)),
-                        TimeHandler.get_string_from_datetime(datetime(2018, 7, 1)))
+    data = DataManager(update_before=False)
+    dict_of_dfs = data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2018, 1, 1)),
+                        TimeHandler.get_string_from_datetime(datetime(2021, 7, 1)))
     print()
 
     # dbAddr = f'{os.path.join("tempDir", "Stock_DataDB_Test.db")}'
