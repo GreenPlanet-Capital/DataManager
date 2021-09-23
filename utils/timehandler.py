@@ -31,7 +31,6 @@ class TimeHandler:
         return datetimeInput.strftime('%Y-%m-%d')
 
     @staticmethod
-    # TODO change method name to get_alpaca_string_from_timestamp
     def get_alpaca_string_from_timestamp(timestampInput: Timestamp):
         return TimeHandler.get_alpaca_string_from_datetime(timestampInput.date())
 

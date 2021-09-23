@@ -93,7 +93,8 @@ class MainTableManager(TableManager):
         start_timestamp = TimeHandler.get_datetime_from_string(start_timestamp)
         end_timestamp = TimeHandler.get_datetime_from_string(end_timestamp)
 
-        fetchDateStart = self.db.select_column_value(self.table_name, stock_symbol, 'dataAvailableFrom').fetchall()[0][0]
+        fetchDateStart = self.db.select_column_value(self.table_name, stock_symbol, 'dataAvailableFrom').fetchall()[0][
+            0]
         fetchDateEnd = self.db.select_column_value(self.table_name, stock_symbol, 'dataAvailableTo').fetchall()[0][0]
 
         if not fetchDateStart or not fetchDateEnd:
@@ -104,15 +105,17 @@ class MainTableManager(TableManager):
 
         start_time_delta = dataAvailableFrom - start_timestamp
         end_time_delta = end_timestamp - dataAvailableTo
+        consider_end_time = end_timestamp - dataAvailableFrom
 
-        required_start_timestamp, required_end_timestamp  = None, None
+        required_start_timestamp, required_end_timestamp = False, False
 
-        if start_time_delta.days>0:
+        if start_time_delta.days > 0:
             required_start_timestamp = dataAvailableFrom - timedelta(days=1)
-        if end_time_delta.days>0:
+        if end_time_delta.days > 0 and consider_end_time.days < 0:
             required_end_timestamp = dataAvailableTo + timedelta(days=1)
 
         return True, required_start_timestamp, required_end_timestamp
+
 
 class DailyDataTableManager:
 
@@ -133,6 +136,21 @@ class DailyDataTableManager:
 
     def __del__(self):
         del (self.db)
+
+    @staticmethod
+    def return_cols():
+        columns = {
+            'timestamp': 'text not null primary key',
+            'open': 'real',
+            'high': 'real',
+            'low': 'real',
+            'close': 'real',
+            'volume': 'integer',
+            'trade_count': 'integer',
+            'vwap': 'real',
+        }
+        return list(columns.keys())
+
 
     def create_sub_table(self, table_name, columns):
         self.db.create_table(f'{table_name}', columns)
