@@ -18,22 +18,51 @@ from datamgr.data_extractor import DataExtractor
 
 
 class DataManager:
-    def __init__(self, exchange_name, limit = None, asset_db_name='AssetDB.db', stock_db_name='Stock_DataDB.db', update_before=True):
+    """
+    Provides financial data for a certain set of stock symbols.
+
+    Example:
+    data = DataManager(limit=10, update_before=True, exchangeName = 'NYSE', isDelisted=True)
+
+    Inputs:
+        - Keyword args **criteria:
+            - `None` or `{}` to get all symbols
+            - `exchangeName` (defaults to 'NYSE')
+            - `isDelisted` (defaults to False)
+            - `isSuspended` (defaults to False)
+            - `index` (optional) (N/A) # TODO implement indexes like S&P 500
+        - `limit`: sets a limit on the number of symbols used
+        - `asset_db_name`: fully qualified path to the AssetDB
+        - `stock_db_name`: fully qualified path to the Stock_DataDB
+        - `update_before`: if True, updates AssetsDB upon instantiation (defaults to False)
+    """
+    def __init__(self, limit = None, asset_db_name='AssetDB.db', stock_db_name='Stock_DataDB.db', update_before=False, **criteria):
         self._assets = Assets(asset_db_name)
         self._main_stocks = MainStocks(stock_db_name, self._assets)
         self._extractor = DataExtractor()
         self._daily_stocks = DailyStockTables(self._main_stocks)
-        self._exchange_name = exchange_name
+        
         if update_before:
             self._assets.update_all_dbs()
-        if exchange_name == 'all':
-            self._exchange_basket = self._assets.asset_table_manager.get_all_tradable_symbols()[:limit]
+
+        if 'exchangeName' in criteria:
+            self._exchange_name = criteria['exchangeName']
         else:
-            self._exchange_basket = [row_dict['stockSymbol'] for row_dict in
-                                    self._assets.asset_table_manager.get_exchange_basket(exchange_name, isDelisted=False,
-                                                                                        isSuspended=False)]
+            self._exchange_name = 'NYSE'
+
+        if not 'isDelisted' in criteria:
+            criteria['isDelisted'] = False
+
+        if not 'isSuspended' in criteria:
+            criteria['isSuspended'] = False
+        
+        self._basket_of_symbols = self._assets.asset_table_manager.get_symbols_from_criteria(criteria)
+        
         if limit:
-            self._exchange_basket = self._exchange_basket[:limit]
+            if len(self._basket_of_symbols) > limit:
+                self._basket_of_symbols = self._basket_of_symbols[:limit]
+            else:
+                warnings.warn('Limit is greater than available symbols for defined criteria')
         
         self._required_symbols_data, self._required_dates = [], []
         self.list_of_symbols = []
@@ -61,7 +90,7 @@ class DataManager:
 
         start_timestamp, end_timestamp = self.validate_timestamps(start_timestamp, end_timestamp)
 
-        for stock in self._exchange_basket:
+        for stock in self._basket_of_symbols:
             self.get_one_stock_data(stock, start_timestamp, end_timestamp)
 
         list_tuples, partial_list_symbols = getattr(self._extractor, f'getMultipleListHistorical{api}')(self._required_symbols_data,
@@ -70,7 +99,7 @@ class DataManager:
         self.reset_required_vars()
         self._extractor.AsyncObj.reset_async_list()
 
-        self.list_of_symbols = list(set(self._exchange_basket).difference(set(partial_list_symbols)))
+        self.list_of_symbols = list(set(self._basket_of_symbols).difference(set(partial_list_symbols)))
         return self._daily_stocks.get_daily_stock_data(self.list_of_symbols, start_timestamp, end_timestamp)
 
     def get_one_stock_data(self, stock_symbol, start_timestamp, end_timestamp):
@@ -188,7 +217,7 @@ if __name__ == '__main__':
     # main_stocks = MainStocks('Stock_DataDB.db', assets)
     # main_stocks.repopulate_all_assets()
 
-    data = DataManager(exchange_name='NYSE', limit=50, update_before=False)
+    data = DataManager(limit=10, exchangeName = 'NYSE')
     data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2018, 6, 1)),
                         TimeHandler.get_string_from_datetime(datetime(2018, 7, 1)))
     print()
