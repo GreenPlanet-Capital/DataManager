@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 import pandas as pd
 from alpaca_trade_api.rest import TimeFrame
+import pandas_market_calendars as mcal
 
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
 from database_layer.database import DatabaseManager
@@ -17,60 +18,77 @@ from datamgr.data_extractor import DataExtractor
 
 
 class DataManager:
-    def __init__(self, exchange_name, asset_db_name='AssetDB.db', stock_db_name='Stock_DataDB.db', update_before=True):
-        self.assets = Assets(asset_db_name)
-        self.main_stocks = MainStocks(stock_db_name, self.assets)
-        self.extractor = DataExtractor()
-        self.daily_stocks = DailyStockTables(self.main_stocks)
+    def __init__(self, exchange_name, limit = None, asset_db_name='AssetDB.db', stock_db_name='Stock_DataDB.db', update_before=True):
+        self._assets = Assets(asset_db_name)
+        self._main_stocks = MainStocks(stock_db_name, self._assets)
+        self._extractor = DataExtractor()
+        self._daily_stocks = DailyStockTables(self._main_stocks)
+        self._exchange_name = exchange_name
         if update_before:
-            self.assets.update_all_dbs()
-
+            self._assets.update_all_dbs()
         if exchange_name == 'all':
-            self.exchange_basket = self.assets.asset_table_manager.get_all_tradable_symbols()[:100]
+            self._exchange_basket = self._assets.asset_table_manager.get_all_tradable_symbols()[:limit]
         else:
-            self.exchange_basket = [row_dict['stockSymbol'] for row_dict in
-                                    self.assets.asset_table_manager.get_exchange_basket(exchange_name, isDelisted=False,
+            self._exchange_basket = [row_dict['stockSymbol'] for row_dict in
+                                    self._assets.asset_table_manager.get_exchange_basket(exchange_name, isDelisted=False,
                                                                                         isSuspended=False)]
-        self.required_symbols_data, self.required_dates = [], []
-        print()
+        if limit:
+            self._exchange_basket = self._exchange_basket[:limit]
+        
+        self._required_symbols_data, self._required_dates = [], []
+        self.list_of_symbols = []
+        
 
     def reset_required_vars(self):
-        self.required_symbols_data, self.required_dates = [], []
+        self._required_symbols_data, self._required_dates = [], []
+
+    def validate_timestamps(self, start_timestamp, end_timestamp):
+        thisExchange = mcal.get_calendar(self._exchange_name)
+        date_range = thisExchange.valid_days(TimeHandler.get_alpaca_string_from_string(start_timestamp), TimeHandler.get_alpaca_string_from_string(end_timestamp))
+        new_start, new_end = TimeHandler.get_string_from_timestamp(date_range[0]), TimeHandler.get_string_from_timestamp(date_range[-1])
+        if new_start != start_timestamp:
+            warnings.warn(f'Start timestamp has changed from: {start_timestamp} to {new_start}')
+        if new_end != end_timestamp:
+            warnings.warn(f'End timestamp has changed from: {end_timestamp} to {new_end}')
+        
+        return new_start, new_end
 
     def get_stock_data(self, start_timestamp, end_timestamp, api='Alpaca'):
 
-        for stock in self.exchange_basket:
+        start_timestamp, end_timestamp = self.validate_timestamps(start_timestamp, end_timestamp)
+
+        for stock in self._exchange_basket:
             self.get_one_stock_data(stock, start_timestamp, end_timestamp)
 
-        list_tuples, partial_list_symbols = getattr(self.extractor, f'getMultipleListHistorical{api}')(self.required_symbols_data,
-                                                                                self.required_dates, TimeFrame.Day)
-        self.daily_stocks.update_daily_stock_data(list_tuples)
+        list_tuples, partial_list_symbols = getattr(self._extractor, f'getMultipleListHistorical{api}')(self._required_symbols_data,
+                                                                                self._required_dates, TimeFrame.Day)
+        self._daily_stocks.update_daily_stock_data(list_tuples)
         self.reset_required_vars()
-        self.extractor.AsyncObj.reset_async_list()
+        self._extractor.AsyncObj.reset_async_list()
 
-        final_list_of_symbols = list(set(self.exchange_basket).difference(set(partial_list_symbols)))
-        return self.daily_stocks.get_daily_stock_data(final_list_of_symbols, start_timestamp, end_timestamp)
+        self.list_of_symbols = list(set(self._exchange_basket).difference(set(partial_list_symbols)))
+        return self._daily_stocks.get_daily_stock_data(self.list_of_symbols, start_timestamp, end_timestamp)
 
     def get_one_stock_data(self, stock_symbol, start_timestamp, end_timestamp):
-        statusTimestamp, req_start, req_end = self.main_stocks.table_manager.check_data_availability(stock_symbol,
+        statusTimestamp, req_start, req_end = self._main_stocks.table_manager.check_data_availability(stock_symbol,
                                                                                                      start_timestamp,
                                                                                                      end_timestamp)
 
         if statusTimestamp:
             if req_start:
-                self.required_symbols_data.append(stock_symbol)
-                self.required_dates.append((TimeHandler.get_alpaca_string_from_string(start_timestamp),
+                self._required_symbols_data.append(stock_symbol)
+                self._required_dates.append((TimeHandler.get_alpaca_string_from_string(start_timestamp),
                                             TimeHandler.get_alpaca_string_from_string(
                                                 TimeHandler.get_string_from_datetime(req_start))))
 
             if req_end:
-                self.required_symbols_data.append(stock_symbol)
-                self.required_dates.append((TimeHandler.get_alpaca_string_from_string(
+                self._required_symbols_data.append(stock_symbol)
+                self._required_dates.append((TimeHandler.get_alpaca_string_from_string(
                     TimeHandler.get_string_from_datetime(req_end)),
                                             TimeHandler.get_alpaca_string_from_string(end_timestamp)))
         else:
-            self.required_symbols_data.append(stock_symbol)
-            self.required_dates.append((TimeHandler.get_alpaca_string_from_string(start_timestamp),
+            self._required_symbols_data.append(stock_symbol)
+            self._required_dates.append((TimeHandler.get_alpaca_string_from_string(start_timestamp),
                                         TimeHandler.get_alpaca_string_from_string(end_timestamp)))
 
 
@@ -166,7 +184,7 @@ if __name__ == '__main__':
     # main_stocks = MainStocks('Stock_DataDB.db', assets)
     # main_stocks.repopulate_all_assets()
 
-    data = DataManager('all', update_before=False)
+    data = DataManager(exchange_name='NYSE', limit=50, update_before=False)
     data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2018, 6, 1)),
                         TimeHandler.get_string_from_datetime(datetime(2018, 7, 1)))
     print()
