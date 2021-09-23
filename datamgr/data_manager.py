@@ -172,7 +172,8 @@ class DailyStockTables:
         """
 
         print('Updating DailyStockTables Database...')
-        # Cannot be threaded
+        # TODO Create several DBs, slice the list_of_tuples, insert tables into each DB, 
+        #      copy all the additional tables into the Main DB, delete the additional DBs.
         for stock_symbol, df in list_of_tuples:
             daily_stock_table = DailyStockDataTable(stock_symbol, self.db)
             records = _Conversions().tuples_to_dict(
