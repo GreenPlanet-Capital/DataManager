@@ -71,6 +71,10 @@ class AssetTableManager(TableManager):
                                                           'isSuspended': isSuspended}).fetchall()
         return [asset['stockSymbol'] for asset in _Conversions.tuples_to_dict(list_of_assets, self.columns)]
 
+    def get_symbols_from_criteria(self, criteria):
+        list_of_assets = self.db.select(self.table_name, criteria).fetchall()
+        return [asset['stockSymbol'] for asset in _Conversions.tuples_to_dict(list_of_assets, self.columns)]
+
 
 class MainTableManager(TableManager):
 
