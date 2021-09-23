@@ -72,7 +72,8 @@ class DataExtractor:
                     if not elem[1].empty:
                         cleaned_output.append(elem)
                     else:
-                        partial_df.append(elem)
+                        # Appending empty dfs only
+                        partial_df.append(elem[0])
 
             cleaned_output.sort(key=lambda x: (x[0], TimeHandler.get_string_from_timestamp(x[1].index[0])))
             initial_list.extend(cleaned_output)
@@ -80,6 +81,8 @@ class DataExtractor:
             iterator_cleaned = 0
             symbols_failed, dates_failed = [], []
             for current_symbol in this_list_symbols:
+                if iterator_cleaned>=len(cleaned_output):
+                    break
                 list_dates = date_ranges[current_symbol]
 
                 list_dates1 = (TimeHandler.get_string_from_timestamp(list_dates[0][0]),
@@ -94,8 +97,9 @@ class DataExtractor:
                     iterator_cleaned += 1
                     continue
                 else:
-                    symbols_failed.append(current_symbol)
-                    dates_failed.append(this_cleaned_date_tuple)
+                    if not current_symbol in partial_df:
+                        symbols_failed.append(current_symbol)
+                        dates_failed.append(this_cleaned_date_tuple)
 
             currentRetries += 1
             this_list_symbols = symbols_failed
@@ -109,12 +113,15 @@ class DataExtractor:
             parsed_first = TimeHandler.get_alpaca_string_from_datetime(df.index[0].date())
             parsed_last = TimeHandler.get_alpaca_string_from_datetime(df.index[-1].date())
 
-            if parsed_first in [date_range_item[0][0], date_range_item[1][0]] and parsed_last in \
-                    [date_range_item[0][-1], date_range_item[1][-1]]:
+            if parsed_first in [TimeHandler.get_string_from_timestamp(date_range_item[0][0]), 
+                                TimeHandler.get_string_from_timestamp(date_range_item[0][-1])] or parsed_last in \
+                                [TimeHandler.get_string_from_timestamp(date_range_item[-1][0]), 
+                                TimeHandler.get_string_from_timestamp(date_range_item[-1][-1])]:
                 validDfs.append((this_symbol, df))
             else:
-                partial_df.append((this_symbol, df))
-
+                partial_df.append(this_symbol)
+            print()
+        print(len(validDfs), len(partial_df))
         return validDfs, partial_df
 
     def getListHistoricalAlpaca(self, listSymbols, dateFrom, dateTo, timeframe: TimeFrame, adjustment='all',

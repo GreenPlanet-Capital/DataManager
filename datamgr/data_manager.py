@@ -26,7 +26,7 @@ class DataManager:
             self.assets.update_all_dbs()
 
         if exchange_name == 'all':
-            self.exchange_basket = self.assets.asset_table_manager.get_all_tradable_symbols()[:50]
+            self.exchange_basket = self.assets.asset_table_manager.get_all_tradable_symbols()[:100]
         else:
             self.exchange_basket = [row_dict['stockSymbol'] for row_dict in
                                     self.assets.asset_table_manager.get_exchange_basket(exchange_name, isDelisted=False,
@@ -42,11 +42,14 @@ class DataManager:
         for stock in self.exchange_basket:
             self.get_one_stock_data(stock, start_timestamp, end_timestamp)
 
-        list_tuples = getattr(self.extractor, f'getMultipleListHistorical{api}')(self.required_symbols_data,
+        list_tuples, partial_list_symbols = getattr(self.extractor, f'getMultipleListHistorical{api}')(self.required_symbols_data,
                                                                                 self.required_dates, TimeFrame.Day)
         self.daily_stocks.update_daily_stock_data(list_tuples)
         self.reset_required_vars()
         self.extractor.AsyncObj.reset_async_list()
+
+        final_list_of_symbols = list(set(self.exchange_basket).difference(set(partial_list_symbols)))
+        return self.daily_stocks.get_daily_stock_data(final_list_of_symbols, start_timestamp, end_timestamp)
 
     def get_one_stock_data(self, stock_symbol, start_timestamp, end_timestamp):
         statusTimestamp, req_start, req_end = self.main_stocks.table_manager.check_data_availability(stock_symbol,
@@ -139,14 +142,16 @@ class DailyStockDataTable:
 
     def update_daily_stock_data(self, list_of_timestamped_data: tuple):
         """
-        Accepts a tuple of dictionaries of timestamped OHLCVTV data
-        Returns: tuple with the new date available from and date available to
+        Accepts a list of dictionaries of timestamped OHLCVTV data
+        Returns: list with the new date available from and date available to
         """
         for timestamp_ohlc_dict in list_of_timestamped_data:
             if isinstance(timestamp_ohlc_dict['timestamp'], np.datetime64):
                 timestamp_ohlc_dict['timestamp'] = \
                     TimeHandler.get_string_from_datetime64(timestamp_ohlc_dict['timestamp'])
             if not self.table_manager.get_one_day_data(timestamp_ohlc_dict['timestamp']):
+                timestamp_ohlc_dict['volume'] = int(timestamp_ohlc_dict['volume'])
+                timestamp_ohlc_dict['trade_count'] = int(timestamp_ohlc_dict['trade_count'])
                 self.table_manager.insert_data(timestamp_ohlc_dict)
             else:
                 warnings.warn(
@@ -162,8 +167,8 @@ if __name__ == '__main__':
     # main_stocks.repopulate_all_assets()
 
     data = DataManager('all', update_before=False)
-    data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2017, 6, 1)),
-                        TimeHandler.get_string_from_datetime(datetime(2017, 7, 1)))
+    data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2018, 6, 1)),
+                        TimeHandler.get_string_from_datetime(datetime(2018, 7, 1)))
     print()
 
     # dbAddr = f'{os.path.join("tempDir", "Stock_DataDB_Test.db")}'

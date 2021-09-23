@@ -21,13 +21,13 @@ class DatabaseManager:
         ]
         self._execute(
             f'''
-            CREATE TABLE IF NOT EXISTS {table_name}
+            CREATE TABLE IF NOT EXISTS "{table_name}"
             ({', '.join(columns_with_types)});
             '''
         )
 
     def drop_table(self, table_name):
-        self._execute(f'DROP TABLE {table_name};')
+        self._execute(f'DROP TABLE "{table_name}";')
 
     def add(self, table_name, data):
         placeholders = ', '.join('?' * len(data))
@@ -36,7 +36,7 @@ class DatabaseManager:
 
         self._execute(
             f'''
-            INSERT INTO {table_name}
+            INSERT INTO "{table_name}"
             ({column_names})
             VALUES ({placeholders});
             ''',
@@ -48,7 +48,7 @@ class DatabaseManager:
         delete_criteria = ' AND '.join(placeholders)
         self._execute(
             f'''
-            DELETE FROM {table_name}
+            DELETE FROM "{table_name}"
             WHERE {delete_criteria};
             ''',
             tuple(criteria.values()),
@@ -57,7 +57,7 @@ class DatabaseManager:
     def select(self, table_name, criteria=None, order_by=None):
         criteria = criteria or {}
 
-        query = f'SELECT * FROM {table_name}'
+        query = f'SELECT * FROM "{table_name}"'
 
         if criteria:
             placeholders = [f'{column} = ?' for column in criteria.keys()]
@@ -75,7 +75,7 @@ class DatabaseManager:
     def select_between_range(self, table_name, criteria=None, order_by=None):
         criteria = criteria or {}
 
-        query = f'SELECT * FROM {table_name}'
+        query = f'SELECT * FROM "{table_name}"'
 
         start_timestamp = criteria["start_timestamp"]
         end_timestamp = criteria["end_timestamp"]
@@ -95,19 +95,19 @@ class DatabaseManager:
         )       
 
     def select_max_value_from_column(self, table_name, column):
-         query = f'SELECT MAX({column}) FROM {table_name}'
+         query = f'SELECT MAX({column}) FROM "{table_name}"'
          return self._execute(
             query
         )
     
     def select_min_value_from_column(self, table_name, column):
-         query = f'SELECT MIN({column}) FROM {table_name}'
+         query = f'SELECT MIN({column}) FROM "{table_name}"'
          return self._execute(
             query
         )
 
     def select_column_value(self, table_name, stock_symbol, column):
-         query = f"SELECT {column} FROM {table_name} WHERE stockSymbol='{stock_symbol}'"
+         query = f"SELECT {column} FROM '{table_name}' WHERE stockSymbol='{stock_symbol}'"
          return self._execute(
             query
         )
@@ -130,7 +130,7 @@ class DatabaseManager:
 
         self._execute(
             f'''
-            UPDATE {table_name}
+            UPDATE "{table_name}"
             SET {data_placeholders}
             WHERE {update_criteria};
             ''',
