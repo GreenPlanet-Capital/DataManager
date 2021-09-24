@@ -4,18 +4,38 @@
 - Create an assetConfig.cfg file in the directory called config_files
 - Insert your API Keys and Secrets here as follows:
 ~~~
+[Globals]
+UseSandbox=False
+
 [Alpaca]
-AlpacaKey=KeyHere
-AlpacaSecret=SecretHere
+AlpacaKey=KEY_HERE
+AlpacaSecret=SECRET_HERE
 
 [IEX_Sandbox]
-IEX_Sandbox_Public=PublicHere
-IEX_Sandbox_Private=PrivateHere
+IEX_Sandbox_Public=PUBLIC_HERE
+IEX_Sandbox_Private=PRIVATE_HERE
 
 [IEX_Real]
-IEX_Public=PublicHere
-IEX_Private=PrivateHere
+IEX_Public=PUBLIC_HERE
+IEX_Private=PRIVATE_HERE
 ~~~
+
+### Calling from External Directory
+```python
+import os, sys
+sys.path.append('DataManager') # Insert DataManager to path
+
+# Set env variable to absolute path of datamanager folder
+os.environ['DATAMGR_ABS_PATH'] = '/home/lifewhiz/projects/DataManager'
+
+# Now import DataManager
+from DataManager.datamgr import data_manager
+this_manager = data_manager.DataManager(update_before=True)
+dict_of_dfs = this_manager.get_stock_data('2018-06-01 00:00:00', 
+                                          '2019-06-01 00:00:00',
+                                          api='Alpaca')
+```
+
 
 ## Examples of API Returns
 

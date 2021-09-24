@@ -17,9 +17,20 @@ from core import *
 
 
 class DataExtractor:
+    """
+        Extracts data given a specific set of stock symbols.
+
+        Example:
+        extractor = DataExtractor()
+        complete_data, partial_data = extractor.getMultipleListHistoricalAlpaca(required_symbols_data,
+            required_dates, TimeFrame.Day)
+
+        Inputs:
+            - `None`
+        """
     def __init__(self) -> None:
         self.configParse = configparser.ConfigParser()
-        self.configParse.read(os.path.join('config_files', 'assetConfig.cfg'))
+        self.configParse.read(os.path.join(DATAMGR_ABS_PATH, os.path.join('config_files', 'assetConfig.cfg')))
         setEnv()
         self.AlpacaAPI = REST(raw_data=True)
         self.AsyncObj = HistoricalAsync()
@@ -42,21 +53,36 @@ class DataExtractor:
         self.AsyncObj.reset_async_list()
         return to_return
 
+    """
+        Extracts data from Alpaca asynchronously. Retries if some calls to Alpaca fail. 
+
+        Example:
+        complete_data, partial_data = getMultipleListHistoricalAlpaca(list_symbols, list_dates, TimeFrame.day, 
+                                        adjustment='all', exchange_name='NYSE', maxRetries=3)
+
+        Inputs:
+            - `list_symbols`: list of symbols to get data from (can be duplicated)
+            - `list_dates`: appropriate dates for the symbols to get data from (indices match with list_symbols list)
+            - `timeframe`: timeframe to get data in (days, hours, months)
+            - `adjustment`: adjustment for stock data
+            - `exchange_name`: exchange to check against for output validation
+            - `maxRetries`: number of times to retry Alpaca calls when encountering exceptions 
+    """
     def getMultipleListHistoricalAlpaca(self, list_symbols, list_dates, timeframe: TimeFrame, adjustment='all',
                                         exchange_name='NYSE', maxRetries=3):
-        date_ranges = {}
-
         this_exchange = mcal.get_calendar(exchange_name)
+        min_date_timeframe = False
         for i, datePair in enumerate(list_dates):
-            if list_symbols[i] in date_ranges:
-                date_ranges[list_symbols[i]].append(this_exchange.valid_days(datePair[0], datePair[1]))
-            else:
-                date_ranges[list_symbols[i]] = [this_exchange.valid_days(datePair[0], datePair[1])]
-        len_list_dates = ([max(len(dates[0]), len(dates[-1])) for dates in list(date_ranges.values())])
-        if max(len_list_dates) > 1000:
+            if not min_date_timeframe:
+                min_date_timeframe = datePair[0]
+            min_date_timeframe = min(min_date_timeframe, datePair[0])
+            valid_days = this_exchange.valid_days(datePair[0], datePair[1])
+            list_dates[i] = (valid_days[0], valid_days[-1])
+        date_difference = datetime.now() - TimeHandler.get_datetime_from_alpaca_string(min_date_timeframe)
+        if date_difference.days > 1000:
             raise Exception('Alpaca only has data on past 5 years')
 
-        def fix_output(list_tuples):
+        def fix_output(list_tuples: [()]) -> dict:
             dict_stocks_df = {}
             for individual_tup in list_tuples:
                 df_this = individual_tup[1]
@@ -76,7 +102,8 @@ class DataExtractor:
             current_output = self.callHistoricalMultipleAlpaca(this_list_symbols,
                                                                this_list_dates, timeframe,
                                                                adjustment)
-            current_output = fix_output(current_output)
+            cleaned_output = [df_tuple for df_tuple in current_output if not isinstance(df_tuple, Exception)]
+            current_output = fix_output(cleaned_output)
             list_failed_symbols = []
             list_failed_dates = []
 
@@ -96,10 +123,9 @@ class DataExtractor:
                     else:
                         partial_symbols.add(stock_symbol)
 
-                currentRetries += 1
-
             this_list_symbols = list_failed_symbols
             this_list_dates = list_failed_dates
+            currentRetries += 1
 
         print(len(valid_tuples), len(partial_symbols), len(empty_symbols))
         partial_symbols.update(empty_symbols)

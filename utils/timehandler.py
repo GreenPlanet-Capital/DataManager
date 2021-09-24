@@ -37,3 +37,7 @@ class TimeHandler:
     @staticmethod
     def get_string_from_timestamp(timestampInput: Timestamp):
         return TimeHandler.get_string_from_datetime(timestampInput.date())
+
+    @staticmethod
+    def get_datetime_from_alpaca_string(datetime_input: str):
+        return datetime.strptime(datetime_input, '%Y-%m-%d')

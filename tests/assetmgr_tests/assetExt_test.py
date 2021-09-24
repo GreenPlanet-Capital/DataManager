@@ -2,13 +2,13 @@ import sys
 import os
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
 from dataset.table import Table
-from assetmgr.asset_manager import AssetManager
+from assetmgr.asset_manager import Assets
 
 if os.path.exists(os.path.join("tempDir", 'Test_Asset_DB.db')):
   os.remove(os.path.join("tempDir", 'Test_Asset_DB.db'))
 
 # Use Test_Asset_DB.db as the name (otherwise it will overwrite Asset_DB.db
-asset_db_obj = AssetManager('Test_Asset_DB.db').asset_table_manager
+asset_db_obj = Assets('Test_Asset_DB.db').asset_table_manager
 
 
 def test_listTables():

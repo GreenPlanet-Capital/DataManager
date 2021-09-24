@@ -10,6 +10,7 @@ import pandas_market_calendars as mcal
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
 from database_layer.database import DatabaseManager
 from assetmgr.asset_manager import Assets
+from core import DATAMGR_ABS_PATH
 from database_layer.tables import DailyDataTableManager, MainTableManager
 from utils.conversions import _Conversions
 from utils.timehandler import TimeHandler
@@ -30,7 +31,7 @@ class DataManager:
             - `exchangeName` (defaults to 'NYSE')
             - `isDelisted` (defaults to False)
             - `isSuspended` (defaults to False)
-            - `index` (optional) (N/A) # TODO implement indexes like S&P 500
+            - `index_name` (optional) (N/A)
         - `limit`: sets a limit on the number of symbols used
         - `asset_db_name`: fully qualified path to the AssetDB
         - `stock_db_name`: fully qualified path to the Stock_DataDB
@@ -46,16 +47,15 @@ class DataManager:
 
         if update_before:
             self._assets.update_all_dbs()
-            # TODO Check significance of updating _main_stocks table
             self._main_stocks.repopulate_all_assets()
 
-        if not 'isDelisted' in criteria:
+        if 'isDelisted' not in criteria:
             criteria['isDelisted'] = False
 
-        if not 'isSuspended' in criteria:
+        if 'isSuspended' not in criteria:
             criteria['isSuspended'] = False
 
-        if not 'exchangeName' in criteria:
+        if 'exchangeName' not in criteria:
             self._basket_of_symbols = self._assets.asset_table_manager.get_symbols_from_criteria(criteria)
             self._exchange_name = 'NYSE'
         else:
@@ -75,7 +75,7 @@ class DataManager:
         self._required_symbols_data, self._required_dates = [], []
 
     def validate_timestamps(self, start_timestamp, end_timestamp):
-
+        print('Validating Dates...')
         if TimeHandler.get_datetime_from_string(start_timestamp) > TimeHandler.get_datetime_from_string(end_timestamp):
             raise ValueError('DateOutOfRange: start timestamp cannot be later than end timestamp')
 
@@ -88,20 +88,22 @@ class DataManager:
             warnings.warn(f'Start timestamp has changed from: {start_timestamp} to {new_start}')
         if new_end != end_timestamp:
             warnings.warn(f'End timestamp has changed from: {end_timestamp} to {new_end}')
-
+        print('Finished date validation!')
         return new_start, new_end
 
     def get_stock_data(self, start_timestamp, end_timestamp, api='Alpaca'):
 
         start_timestamp, end_timestamp = self.validate_timestamps(start_timestamp, end_timestamp)
 
+        print('Checking dates availability...')
         for stock in self._basket_of_symbols:
             self.get_one_stock_data(stock, start_timestamp, end_timestamp)
+        print('Finished checking dates availability!')
 
         list_tuples, partial_list_symbols = getattr(self._extractor, f'getMultipleListHistorical{api}')(
             self._required_symbols_data,
             self._required_dates, TimeFrame.Day)
-        # TODO len of return not same as len of list_tuples
+
         self._daily_stocks.update_daily_stock_data(list_tuples)
         self.reset_required_vars()
         self._extractor.AsyncObj.reset_async_list()
@@ -133,7 +135,7 @@ class DataManager:
 
 class MainStocks:
     def __init__(self, db_name='Stock_DataDB.db', assets: Assets = None):
-        self.table_manager = MainTableManager(f'{os.path.join("tempDir", db_name)}')
+        self.table_manager = MainTableManager(os.path.join(DATAMGR_ABS_PATH,os.path.join("tempDir", db_name)))
         self.assets = assets
 
     def repopulate_all_assets(self):
@@ -232,9 +234,9 @@ if __name__ == '__main__':
     # main_stocks = MainStocks('Stock_DataDB.db', assets)
     # main_stocks.repopulate_all_assets()
 
-    data = DataManager(update_before=True, limit=500)
-    dict_of_dfs = data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2021, 1, 1)),
-                                      TimeHandler.get_string_from_datetime(datetime(2021, 2, 1)))
+    data = DataManager(update_before=False)
+    dict_of_dfs = data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2013, 1, 1)),
+                                      TimeHandler.get_string_from_datetime(datetime(2016, 2, 1)))
     print()
 
     # dbAddr = f'{os.path.join("tempDir", "Stock_DataDB_Test.db")}'

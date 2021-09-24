@@ -1,8 +1,12 @@
 import configparser
 import os
 
+if 'DATAMGR_ABS_PATH' not in os.environ:
+    raise EnvironmentError('Need to set DATAMGR_ABS_PATH env variable')
+DATAMGR_ABS_PATH = os.environ['DATAMGR_ABS_PATH']
+
 configParse = configparser.ConfigParser()
-configParse.read(os.path.join('config_files', 'assetConfig.cfg'))
+configParse.read(os.path.join(DATAMGR_ABS_PATH, os.path.join('config_files', 'assetConfig.cfg')))
 AlpacaAuth = {
     'AlpacaKey': configParse.get('Alpaca', 'AlpacaKey'),
     'AlpacaSecret': configParse.get('Alpaca', 'AlpacaSecret'),

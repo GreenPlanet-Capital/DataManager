@@ -2,10 +2,11 @@ from collections import OrderedDict
 import sys
 import os
 import glob
+from core import DATAMGR_ABS_PATH
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
 from datamgr.data_manager import _MainTableManager
 
-for loc in glob.glob(os.path.join("tempDir",'Test*.db*')):
+for loc in glob.glob(os.path.join(DATAMGR_ABS_PATH, os.path.join("tempDir",'Test*.db*'))):
   os.remove(loc)
 
 # Use Test_Stock_DataDB.db as the name (otherwise it will overwrite Stock_DataDB.db

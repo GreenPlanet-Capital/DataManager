@@ -7,6 +7,7 @@ sys.path.insert(0, os.getcwd())  # Resolve Importing errors
 from database_layer.database import DatabaseManager
 from utils.conversions import _Conversions
 from utils.timehandler import TimeHandler
+from core import DATAMGR_ABS_PATH
 
 
 class TableManager:
@@ -16,7 +17,7 @@ class TableManager:
         self.columns = {}
 
     def __del__(self):
-        del (self.db)
+        del self.db
 
     def list_tables(self):
         return [e for (e,) in self.db.list_tables().fetchall()]
@@ -51,6 +52,7 @@ class AssetTableManager(TableManager):
             'stockSymbol': 'text not null primary key',
             'companyName': 'text not null',
             'exchangeName': 'text not null',
+            'index_name': 'text',
             'dateLastUpdated': 'text not null',
             'region': 'text',
             'currency': 'text',
@@ -62,6 +64,12 @@ class AssetTableManager(TableManager):
 
     def get_exchange_basket(self, exchangeName, isDelisted=False, isSuspended=False):
         list_of_assets = self.db.select(self.table_name, {'exchangeName': exchangeName,
+                                                          'isDelisted': isDelisted,
+                                                          'isSuspended': isSuspended}).fetchall()
+        return _Conversions.tuples_to_dict(list_of_assets, self.columns)
+
+    def get_index_basket(self, index_name, isDelisted=False, isSuspended=False):
+        list_of_assets = self.db.select(self.table_name, {'index_name': index_name,
                                                           'isDelisted': isDelisted,
                                                           'isSuspended': isSuspended}).fetchall()
         return _Conversions.tuples_to_dict(list_of_assets, self.columns)
@@ -79,6 +87,7 @@ class AssetTableManager(TableManager):
 class MainTableManager(TableManager):
 
     def __init__(self, db_name):
+        super().__init__(db_name)
         self.db = DatabaseManager(db_name)
         self.table_name = 'MainStockData'
         self.columns = {
@@ -151,7 +160,6 @@ class DailyDataTableManager:
         }
         return list(columns.keys())
 
-
     def create_sub_table(self, table_name, columns):
         self.db.create_table(f'{table_name}', columns)
 
@@ -183,7 +191,7 @@ class DailyDataTableManager:
 
 
 if '__main__' == __name__:
-    asset_table = AssetTableManager(f'{os.path.join("tempDir", "Asset_Test.db")}')
+    asset_table = AssetTableManager(os.path.join(DATAMGR_ABS_PATH, os.path.join("tempDir", "Asset_Test.db")))
     data = {
         'stockSymbol': 'TEST_SYMBOL_TWO',
         'companyName': 'TEST_COMPANY',
@@ -198,10 +206,10 @@ if '__main__' == __name__:
     asset_table.insert_asset(data)
     # asset_table.update_asset(data)
     output = asset_table.get_exchange_basket(exchangeName='TEST_EXCHANGE')
-    output = asset_table.get_assets_list()
+    # output = asset_table.get_assets_list()
     # output = asset_table.get_all_tradable_symbols()
 
-    db = DatabaseManager(f'{os.path.join("tempDir", "Stock_DataDB.db")}')
+    db = DatabaseManager(os.path.join(DATAMGR_ABS_PATH, os.path.join("tempDir", "Stock_DataDB.db")))
     daily_data_table = DailyDataTableManager('TEST_SYMBOL_TABLE', db)
     a = daily_data_table.get_data('2021-09-12', '2021-09-20')
     print()
