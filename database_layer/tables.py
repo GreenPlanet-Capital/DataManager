@@ -24,6 +24,11 @@ class TableManager:
     def create_asset_table(self, table_name, columns):
         self.db.create_table(f'{table_name}', columns)
 
+    def drop_all_tables(self):
+        tables = self.list_tables()
+        for table in tables:
+            self.db.drop_table(table_name=table)
+
     def insert_asset(self, asset_data):
         self.db.add(self.table_name, asset_data)
 
