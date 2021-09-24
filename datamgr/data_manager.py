@@ -1,11 +1,14 @@
 from datetime import datetime, timezone
 import sys
 import os
+from typing import Iterable
 import warnings
 import numpy as np
 import pandas as pd
 from alpaca_trade_api.rest import TimeFrame
+from pandas.core.frame import DataFrame
 import pandas_market_calendars as mcal
+import math
 
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
 from database_layer.database import DatabaseManager
@@ -133,7 +136,8 @@ class DataManager:
 
 class MainStocks:
     def __init__(self, db_name='Stock_DataDB.db', assets: Assets = None):
-        self.table_manager = MainTableManager(f'{os.path.join("tempDir", db_name)}')
+        self.db_path = f'{os.path.join("tempDir", db_name)}'
+        self.table_manager = MainTableManager(self.db_path)
         self.assets = assets
 
     def repopulate_all_assets(self):
@@ -177,18 +181,50 @@ class DailyStockTables:
         print('Updating DailyStockTables Database...')
         # TODO Create several DBs, slice the list_of_tuples, insert tables into each DB, 
         #      copy all the additional tables into the Main DB, delete the additional DBs.
-        for stock_symbol, df in list_of_tuples:
-            daily_stock_table = DailyStockDataTable(stock_symbol, self.db)
-            records = _Conversions().tuples_to_dict(
-                list(df.to_records()),
-                daily_stock_table.table_manager.columns
-            )
-            dataAvailableFrom, dataAvailableTo = daily_stock_table.update_daily_stock_data(records)
-            self.main_stocks.update_stock_symbol_main_table(stockSymbol=stock_symbol,
-                                                            dataAvailableFrom=dataAvailableFrom,
-                                                            dataAvailableTo=dataAvailableTo)
+
+        # Slice list_of_tuples into groups
+        number_of_tuples = len(list_of_tuples)
+        step_value = math.ceil(number_of_tuples/math.pow(10, len(str(number_of_tuples)-1)))
+        groups_of_tuples = []
+        for i in range(0, number_of_tuples, step_value):
+            end_value = i+step_value
+            if end_value>number_of_tuples:
+                end_value = number_of_tuples
+            groups_of_tuples.append(list_of_tuples[i:end_value])
+
+        # Create the step_value+1 DBs
+        list_main_stock_connections: Iterable[MainStocks] = []
+        for i in range(0, step_value+1):
+            this_main_stock = MainStocks(db_name=f'Temp_DB{i}.db')
+            this_main_stock.table_manager.drop_all_tables()
+            list_main_stock_connections.append()
+
+        # TODO Threading here for outer for loop
+        for list_of_tuples, main_stocks_connection in zip(groups_of_tuples, list_main_stock_connections):
+            for stock_symbol, df in list_of_tuples:
+                self.update_one_stock_table(stock_symbol, df, main_stocks_connection)
+
+        for main_stocks_connection in list_main_stock_connections:
+            list_of_stock_tables = main_stocks_connection.table_manager.list_tables()
+            for stock_table_name in list_of_stock_tables:
+                if stock_table_name == self.main_stocks.table_manager.table_name:
+                    DailyStockDataTable(stock_table_name, self.main_stocks.table_manager.db)
+                
+                # Copying all tables including temp DB's MainStockData table
+                main_stocks_connection.table_manager.db.insert_table_into_another_db(self.main_stocks.db_path, stock_table_name)
 
         print('Update completed\n')
+
+    def update_one_stock_table(self, stock_symbol, df: DataFrame, main_stocks_connection: MainStocks):
+        daily_stock_table = DailyStockDataTable(stock_symbol, main_stocks_connection.table_manager.db)
+        records = _Conversions().tuples_to_dict(
+            list(df.to_records()),
+            daily_stock_table.table_manager.columns
+        )
+        dataAvailableFrom, dataAvailableTo = daily_stock_table.update_daily_stock_data(records)
+        main_stocks_connection.update_stock_symbol_main_table(stockSymbol=stock_symbol,
+                                                        dataAvailableFrom=dataAvailableFrom,
+                                                        dataAvailableTo=dataAvailableTo)
 
     def get_daily_stock_data(self, list_of_symbols, start_timestamp, end_timestamp):
         dictStockData = {}
