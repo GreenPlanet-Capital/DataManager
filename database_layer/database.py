@@ -68,7 +68,7 @@ class DatabaseManager:
             query += f' ORDER BY {order_by}'
 
         return self._execute(
-            query,
+            query+';',
             tuple(criteria.values()),
         )
 
@@ -90,24 +90,24 @@ class DatabaseManager:
             query += f' ORDER BY {order_by}'
 
         return self._execute(
-            query,
+            query+';',
             values,
         )       
 
     def select_max_value_from_column(self, table_name, column):
-         query = f'SELECT MAX({column}) FROM "{table_name}"'
+         query = f'SELECT MAX({column}) FROM "{table_name}";'
          return self._execute(
             query
         )
     
     def select_min_value_from_column(self, table_name, column):
-         query = f'SELECT MIN({column}) FROM "{table_name}"'
+         query = f'SELECT MIN({column}) FROM "{table_name}";'
          return self._execute(
             query
         )
 
     def select_column_value(self, table_name, stock_symbol, column):
-         query = f"SELECT {column} FROM '{table_name}' WHERE stockSymbol='{stock_symbol}'"
+         query = f"SELECT {column} FROM '{table_name}' WHERE stockSymbol='{stock_symbol}';"
          return self._execute(
             query
         )
@@ -116,7 +116,7 @@ class DatabaseManager:
         query = """SELECT name
                 FROM sqlite_master 
                 WHERE type ='table' AND 
-                name NOT LIKE 'sqlite_%'
+                name NOT LIKE 'sqlite_%';
                 """
         return self._execute(query)
 
@@ -136,3 +136,18 @@ class DatabaseManager:
             ''',
             values,
         )
+
+    def insert_table_into_another_db(self, attach_db_path, table_name):
+        query = f'''
+                ATTACH DATABASE '{attach_db_path}' AS other;
+                '''
+        self._execute(query)
+        query =f'''
+                INSERT INTO other."{table_name}"
+                SELECT * FROM main."{table_name}";
+                '''
+        self._execute(query)
+        query =f'''
+                DETACH other;
+                '''
+        self._execute(query)
