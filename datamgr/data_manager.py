@@ -78,7 +78,6 @@ class DataManager:
         self._required_symbols_data, self._required_dates = [], []
 
     def validate_timestamps(self, start_timestamp, end_timestamp):
-        print('Validating Dates...')
         if TimeHandler.get_datetime_from_string(start_timestamp) > TimeHandler.get_datetime_from_string(end_timestamp):
             raise ValueError('DateOutOfRange: start timestamp cannot be later than end timestamp')
 
@@ -88,26 +87,31 @@ class DataManager:
         new_start, new_end = TimeHandler.get_string_from_timestamp(
             date_range[0]), TimeHandler.get_string_from_timestamp(date_range[-1])
         if new_start != start_timestamp:
-            warnings.warn(f'Start timestamp has changed from: {start_timestamp} to {new_start}')
+            print(f'Start timestamp has changed from: {start_timestamp} to {new_start}')
         if new_end != end_timestamp:
-            warnings.warn(f'End timestamp has changed from: {end_timestamp} to {new_end}')
-        print('Finished validating date\n')
+            print(f'End timestamp has changed from: {end_timestamp} to {new_end}')
+        
         return new_start, new_end
 
     def get_stock_data(self, start_timestamp, end_timestamp, api='Alpaca'):
 
+        print('Validating Dates...')
         start_timestamp, end_timestamp = self.validate_timestamps(start_timestamp, end_timestamp)
+        print('Finished validating date\n')
 
         print('Checking dates availability...')
         for stock in self._basket_of_symbols:
             self.get_one_stock_data(stock, start_timestamp, end_timestamp)
         print('Finished checking dates availability!\n')
 
+        print('Getting data from API.')
         list_tuples, partial_list_symbols = getattr(self._extractor, f'getMultipleListHistorical{api}')(
             self._required_symbols_data,
             self._required_dates, TimeFrame.Day)
+        print('Finished getting data from API!\n')
 
-        self._daily_stocks.update_daily_stock_data(list_tuples)
+        if not(len(list_tuples)==0 or list_tuples):
+            self._daily_stocks.update_daily_stock_data(list_tuples)
         self.reset_required_vars()
         self._extractor.AsyncObj.reset_async_list()
 
@@ -212,11 +216,11 @@ class DailyStockTables:
                 if stock_table_name != self.main_stocks.table_manager.table_name:
                     DailyStockDataTable(stock_table_name, self.main_stocks.table_manager.db)
                     # Copying all tables excluding temp DB's MainStockData table
-                    # TODO if table exists in StockDataDB then update
-                    main_stocks_connection.table_manager.db.insert_table_into_another_db(self.main_stocks.db_path, stock_table_name)
-            
-            # TODO update the MainStockTable in StockDataDB instead of inserting
-            main_stocks_connection.table_manager.db.insert_table_into_another_db(self.main_stocks.db_path, self.main_stocks.table_manager.table_name)
+                    main_stocks_connection.table_manager.db.insert_table_into_another_db(
+                        self.main_stocks.db_path, stock_table_name)
+
+            main_stocks_connection.table_manager.db.insert_table_into_another_db(
+                self.main_stocks.db_path, self.main_stocks.table_manager.table_name)
 
         print('Update completed\n')
 
@@ -233,13 +237,13 @@ class DailyStockTables:
 
     def get_daily_stock_data(self, list_of_symbols, start_timestamp, end_timestamp):
         dictStockData = {}
-
+        print('Reading data from database.')
         for individualSymbol in list_of_symbols:
             thisStockTable = DailyStockDataTable(individualSymbol, self.db).table_manager
             listData = thisStockTable.get_data(start_timestamp, end_timestamp)
             thisDf = pd.DataFrame(listData, columns=list(thisStockTable.columns.keys()))
             dictStockData[individualSymbol] = thisDf
-
+        print(f'Read complete! Returning dataframe(s) for {len(list_of_symbols)} symbols.\n')
         return dictStockData
 
 
@@ -276,6 +280,7 @@ if __name__ == '__main__':
     data = DataManager(update_before=False, limit=50)
     dict_of_dfs = data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2018, 1, 1)),
                                       TimeHandler.get_string_from_datetime(datetime(2018, 2, 1)))
+    list_of_final_symbols = data.list_of_symbols                                  
     print()
 
     # dbAddr = f'{os.path.join("tempDir", "Stock_DataDB_Test.db")}'
