@@ -248,17 +248,27 @@ class DailyStockTables:
         for list_of_tuples, main_stocks_connection in zip(groups_of_tuples, list_main_stock_connections):
             self.insert_into_dbs_one_connection(
                 list_of_tuples, main_stocks_connection)
+            print(f"Status: {main_stocks_connection.db_path} is Complete")
 
     def insert_into_dbs_with_threading(self, groups_of_tuples: Iterable[tuple], list_main_stock_connections):
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(groups_of_tuples)) as executor:
-            for list_of_tuples, main_stocks_connection in zip(groups_of_tuples, list_main_stock_connections):
-                executor.submit(lambda p: self.insert_into_dbs_one_connection(**p), {'list_of_tuples': list_of_tuples, 'main_stocks_connection': main_stocks_connection})
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = {
+                executor.submit(self.insert_into_dbs_one_connection, list_of_tuples, main_stocks_connection): main_stocks_connection
+                for list_of_tuples, main_stocks_connection in zip(groups_of_tuples, list_main_stock_connections)
+            }
+
+            for fut in concurrent.futures.as_completed(futures):
+                original_task = futures[fut]
+                print(f"Status: {original_task.db_path} is {fut.result()}")
+
+        print()
 
     def insert_into_dbs_one_connection(self, list_of_tuples, main_stocks_connection):
         for stock_symbol, df in list_of_tuples:
             self.update_one_stock_table(
                 stock_symbol, df, main_stocks_connection)
-        return True
+        return 'Complete'
 
     def update_one_stock_table(self, stock_symbol, df: DataFrame, main_stocks_connection: MainStocks):
         daily_stock_table = DailyStockDataTable(
@@ -325,7 +335,7 @@ def time_it_func(threading):
     main_stocks.repopulate_all_assets()
 
     start = timeit.default_timer()
-    data = DataManager(update_before=False, limit=50)
+    data = DataManager(update_before=False, limit=300)
     dict_of_dfs = data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2018, 1, 1)),
                                       TimeHandler.get_string_from_datetime(datetime(2018, 2, 1)), 
                                       threading=threading)
@@ -336,7 +346,7 @@ def time_it_func(threading):
 
 if __name__ == '__main__':
 
-    tries = 1
+    tries = 5
     ttime = 0
     msg = ''
     msg += f'Number of repeats: {tries}\n'
@@ -344,18 +354,19 @@ if __name__ == '__main__':
 
     for trial in range(tries):
         print(f'Trial: {trial+1}')
+        ttime += time_it_func(threading=True)
+
+    msg += f"{ttime/tries}\n"
+
+    msg += 'Time without threading:'
+
+    for trial in range(tries):
+        print(f'Trial: {trial+1}')
         ttime += time_it_func(False)
 
     msg += f"{ttime/tries}\n"
 
-    # msg += 'Time without threading:'
-
-    # for trial in range(tries):
-    #     ttime += time_it_func(False)
-
-    # msg += f"{ttime/tries}\n"
-
-    # print(msg)
+    print(msg)
 
     # dbAddr = f'{os.path.join("tempDir", "Stock_DataDB_Test.db")}'
     # db_manager = DatabaseManager(dbAddr)
