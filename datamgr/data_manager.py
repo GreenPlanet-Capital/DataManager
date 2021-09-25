@@ -9,17 +9,20 @@ from alpaca_trade_api.rest import TimeFrame
 from pandas.core.frame import DataFrame
 import pandas_market_calendars as mcal
 import math
+import concurrent.futures
+import timeit
 
 sys.path.insert(0, os.getcwd())  # Resolve Importing errors
-from database_layer.database import DatabaseManager
-from assetmgr.asset_manager import Assets
-from core import DATAMGR_ABS_PATH
-from database_layer.tables import DailyDataTableManager, MainTableManager
-from utils.conversions import _Conversions
 from utils.timehandler import TimeHandler
+from utils.conversions import _Conversions
+from database_layer.tables import DailyDataTableManager, MainTableManager
+from core import DATAMGR_ABS_PATH
 from assetmgr.asset_manager import Assets
+from database_layer.database import DatabaseManager
 from datamgr.data_extractor import DataExtractor
 
+api_start = 0
+api_end = 0
 
 class DataManager:
     """
@@ -59,17 +62,20 @@ class DataManager:
             criteria['isSuspended'] = False
 
         if 'exchangeName' not in criteria:
-            self._basket_of_symbols = self._assets.asset_table_manager.get_symbols_from_criteria(criteria)
+            self._basket_of_symbols = self._assets.asset_table_manager.get_symbols_from_criteria(
+                criteria)
             self._exchange_name = 'NYSE'
         else:
             self._exchange_name = criteria['exchangeName']
-            self._basket_of_symbols = self._assets.asset_table_manager.get_symbols_from_criteria(criteria)
+            self._basket_of_symbols = self._assets.asset_table_manager.get_symbols_from_criteria(
+                criteria)
 
         if limit:
             if len(self._basket_of_symbols) > limit:
                 self._basket_of_symbols = self._basket_of_symbols[:limit]
             else:
-                warnings.warn('Limit is greater than available symbols for defined criteria')
+                warnings.warn(
+                    'Limit is greater than available symbols for defined criteria')
 
         self._required_symbols_data, self._required_dates = [], []
         self.list_of_symbols = []
@@ -79,7 +85,8 @@ class DataManager:
 
     def validate_timestamps(self, start_timestamp, end_timestamp):
         if TimeHandler.get_datetime_from_string(start_timestamp) > TimeHandler.get_datetime_from_string(end_timestamp):
-            raise ValueError('DateOutOfRange: start timestamp cannot be later than end timestamp')
+            raise ValueError(
+                'DateOutOfRange: start timestamp cannot be later than end timestamp')
 
         thisExchange = mcal.get_calendar(self._exchange_name)
         date_range = thisExchange.valid_days(TimeHandler.get_alpaca_string_from_string(start_timestamp),
@@ -87,16 +94,19 @@ class DataManager:
         new_start, new_end = TimeHandler.get_string_from_timestamp(
             date_range[0]), TimeHandler.get_string_from_timestamp(date_range[-1])
         if new_start != start_timestamp:
-            print(f'Start timestamp has changed from: {start_timestamp} to {new_start}')
+            print(
+                f'Start timestamp has changed from: {start_timestamp} to {new_start}')
         if new_end != end_timestamp:
-            print(f'End timestamp has changed from: {end_timestamp} to {new_end}')
-        
+            print(
+                f'End timestamp has changed from: {end_timestamp} to {new_end}')
+
         return new_start, new_end
 
-    def get_stock_data(self, start_timestamp, end_timestamp, api='Alpaca'):
+    def get_stock_data(self, start_timestamp, end_timestamp, api='Alpaca', threading=True):
 
         print('Validating Dates...')
-        start_timestamp, end_timestamp = self.validate_timestamps(start_timestamp, end_timestamp)
+        start_timestamp, end_timestamp = self.validate_timestamps(
+            start_timestamp, end_timestamp)
         print('Finished validating date\n')
 
         print('Checking dates availability...')
@@ -105,17 +115,21 @@ class DataManager:
         print('Finished checking dates availability!\n')
 
         print('Getting data from API.')
+        global api_start; global api_end
+        api_start = timeit.default_timer()
         list_tuples, partial_list_symbols = getattr(self._extractor, f'getMultipleListHistorical{api}')(
             self._required_symbols_data,
             self._required_dates, TimeFrame.Day)
+        api_end = timeit.default_timer()
         print('Finished getting data from API!\n')
 
-        if not(len(list_tuples)==0 or list_tuples):
-            self._daily_stocks.update_daily_stock_data(list_tuples)
+        if not(len(list_tuples) == 0) or list_tuples:
+            self._daily_stocks.update_daily_stock_data(list_tuples, threading)
         self.reset_required_vars()
         self._extractor.AsyncObj.reset_async_list()
 
-        self.list_of_symbols = list(set(self._basket_of_symbols).difference(set(partial_list_symbols)))
+        self.list_of_symbols = list(
+            set(self._basket_of_symbols).difference(set(partial_list_symbols)))
         return self._daily_stocks.get_daily_stock_data(self.list_of_symbols, start_timestamp, end_timestamp)
 
     def get_one_stock_data(self, stock_symbol, start_timestamp, end_timestamp):
@@ -133,7 +147,7 @@ class DataManager:
                 self._required_symbols_data.append(stock_symbol)
                 self._required_dates.append((TimeHandler.get_alpaca_string_from_string(
                     TimeHandler.get_string_from_datetime(req_end)),
-                                             TimeHandler.get_alpaca_string_from_string(end_timestamp)))
+                    TimeHandler.get_alpaca_string_from_string(end_timestamp)))
         else:
             self._required_symbols_data.append(stock_symbol)
             self._required_dates.append((TimeHandler.get_alpaca_string_from_string(start_timestamp),
@@ -142,7 +156,8 @@ class DataManager:
 
 class MainStocks:
     def __init__(self, db_name='Stock_DataDB.db', assets: Assets = None):
-        self.db_path = os.path.join(DATAMGR_ABS_PATH,os.path.join("tempDir", db_name))
+        self.db_path = os.path.join(
+            DATAMGR_ABS_PATH, os.path.join("tempDir", db_name))
         self.table_manager = MainTableManager(self.db_path)
         self.assets = assets
 
@@ -178,23 +193,24 @@ class DailyStockTables:
         self.main_stocks = main_stocks
         self.db = self.main_stocks.table_manager.db
 
-    def update_daily_stock_data(self, list_of_tuples: list):
+    def update_daily_stock_data(self, list_of_tuples: list, threading=True):
         """
         Input: list_of_tuples
         Format: [('SYMBOL1', pandas.Dataframe), ('SYMBOL2', pandas.Dataframe)...]
         """
 
         print('Updating DailyStockTables Database...')
-        # TODO Create several DBs, slice the list_of_tuples, insert tables into each DB, 
+        # TODO Create several DBs, slice the list_of_tuples, insert tables into each DB,
         #      copy all the additional tables into the Main DB, delete the additional DBs.
 
         # Slice list_of_tuples into groups
         number_of_tuples = len(list_of_tuples)
-        step_value = math.ceil(number_of_tuples/math.pow(10, len(str(number_of_tuples))-1))
+        step_value = math.ceil(
+            number_of_tuples/math.pow(10, len(str(number_of_tuples))-1))
         groups_of_tuples = []
         for i in range(0, number_of_tuples, step_value):
             end_value = i+step_value
-            if end_value>number_of_tuples:
+            if end_value > number_of_tuples:
                 end_value = number_of_tuples
             groups_of_tuples.append(list_of_tuples[i:end_value])
 
@@ -202,19 +218,23 @@ class DailyStockTables:
         list_main_stock_connections: Iterable[MainStocks] = []
         for i in range(0, len(groups_of_tuples)):
             this_main_stock = MainStocks(db_name=f'Temp_DB{i}.db')
-            this_main_stock.table_manager.drop_all_tables()
+            this_main_stock.table_manager.drop_all_tables(exclude=[this_main_stock.table_manager.table_name])
             list_main_stock_connections.append(this_main_stock)
 
-        # TODO Threading here for outer for loop
-        for list_of_tuples, main_stocks_connection in zip(groups_of_tuples, list_main_stock_connections):
-            for stock_symbol, df in list_of_tuples:
-                self.update_one_stock_table(stock_symbol, df, main_stocks_connection)
+        if threading:
+            self.insert_into_dbs_with_threading(
+                groups_of_tuples, list_main_stock_connections)
+            print()
+        else:
+            self.insert_into_dbs_without_threading(
+                groups_of_tuples, list_main_stock_connections)
 
         for main_stocks_connection in list_main_stock_connections:
             list_of_stock_tables = main_stocks_connection.table_manager.list_tables()
             for stock_table_name in list_of_stock_tables:
                 if stock_table_name != self.main_stocks.table_manager.table_name:
-                    DailyStockDataTable(stock_table_name, self.main_stocks.table_manager.db)
+                    DailyStockDataTable(
+                        stock_table_name, self.main_stocks.table_manager.db)
                     # Copying all tables excluding temp DB's MainStockData table
                     main_stocks_connection.table_manager.db.insert_table_into_another_db(
                         self.main_stocks.db_path, stock_table_name)
@@ -224,32 +244,54 @@ class DailyStockTables:
 
         print('Update completed\n')
 
+    def insert_into_dbs_without_threading(self, groups_of_tuples: Iterable[tuple], list_main_stock_connections):
+        for list_of_tuples, main_stocks_connection in zip(groups_of_tuples, list_main_stock_connections):
+            self.insert_into_dbs_one_connection(
+                list_of_tuples, main_stocks_connection)
+
+    def insert_into_dbs_with_threading(self, groups_of_tuples: Iterable[tuple], list_main_stock_connections):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(groups_of_tuples)) as executor:
+            for list_of_tuples, main_stocks_connection in zip(groups_of_tuples, list_main_stock_connections):
+                executor.submit(lambda p: self.insert_into_dbs_one_connection(**p), {'list_of_tuples': list_of_tuples, 'main_stocks_connection': main_stocks_connection})
+
+    def insert_into_dbs_one_connection(self, list_of_tuples, main_stocks_connection):
+        for stock_symbol, df in list_of_tuples:
+            self.update_one_stock_table(
+                stock_symbol, df, main_stocks_connection)
+        return True
+
     def update_one_stock_table(self, stock_symbol, df: DataFrame, main_stocks_connection: MainStocks):
-        daily_stock_table = DailyStockDataTable(stock_symbol, main_stocks_connection.table_manager.db)
+        daily_stock_table = DailyStockDataTable(
+            stock_symbol, main_stocks_connection.table_manager.db)
         records = _Conversions().tuples_to_dict(
             list(df.to_records()),
             daily_stock_table.table_manager.columns
         )
-        dataAvailableFrom, dataAvailableTo = daily_stock_table.update_daily_stock_data(records)
+        dataAvailableFrom, dataAvailableTo = daily_stock_table.update_daily_stock_data(
+            records)
         main_stocks_connection.update_stock_symbol_main_table(stockSymbol=stock_symbol,
-                                                        dataAvailableFrom=dataAvailableFrom,
-                                                        dataAvailableTo=dataAvailableTo)
+                                                              dataAvailableFrom=dataAvailableFrom,
+                                                              dataAvailableTo=dataAvailableTo)
 
     def get_daily_stock_data(self, list_of_symbols, start_timestamp, end_timestamp):
         dictStockData = {}
         print('Reading data from database.')
         for individualSymbol in list_of_symbols:
-            thisStockTable = DailyStockDataTable(individualSymbol, self.db).table_manager
+            thisStockTable = DailyStockDataTable(
+                individualSymbol, self.db).table_manager
             listData = thisStockTable.get_data(start_timestamp, end_timestamp)
-            thisDf = pd.DataFrame(listData, columns=list(thisStockTable.columns.keys()))
+            thisDf = pd.DataFrame(listData, columns=list(
+                thisStockTable.columns.keys()))
             dictStockData[individualSymbol] = thisDf
-        print(f'Read complete! Returning dataframe(s) for {len(list_of_symbols)} symbols.\n')
+        print(
+            f'Read complete! Returning dataframe(s) for {len(list_of_symbols)} symbols.\n')
         return dictStockData
 
 
 class DailyStockDataTable:
     def __init__(self, table_name, db: DatabaseManager):
-        self.table_manager = DailyDataTableManager(table_name=table_name, db=db)
+        self.table_manager = DailyDataTableManager(
+            table_name=table_name, db=db)
 
     def update_daily_stock_data(self, list_of_timestamped_data: tuple):
         """
@@ -259,10 +301,13 @@ class DailyStockDataTable:
         for timestamp_ohlc_dict in list_of_timestamped_data:
             if isinstance(timestamp_ohlc_dict['timestamp'], np.datetime64):
                 timestamp_ohlc_dict['timestamp'] = \
-                    TimeHandler.get_string_from_datetime64(timestamp_ohlc_dict['timestamp'])
+                    TimeHandler.get_string_from_datetime64(
+                        timestamp_ohlc_dict['timestamp'])
             if not self.table_manager.get_one_day_data(timestamp_ohlc_dict['timestamp']):
-                timestamp_ohlc_dict['volume'] = int(timestamp_ohlc_dict['volume'])
-                timestamp_ohlc_dict['trade_count'] = int(timestamp_ohlc_dict['trade_count'])
+                timestamp_ohlc_dict['volume'] = int(
+                    timestamp_ohlc_dict['volume'])
+                timestamp_ohlc_dict['trade_count'] = int(
+                    timestamp_ohlc_dict['trade_count'])
                 self.table_manager.insert_data(timestamp_ohlc_dict)
             else:
                 warnings.warn(
@@ -271,17 +316,46 @@ class DailyStockDataTable:
         return self.table_manager.get_dates_for_available_data()
 
 
-if __name__ == '__main__':
+def time_it_func(threading):
     assets = Assets('AssetDB.db')
     # assets.update_db_alpaca_assets()
-    # main_stocks = MainStocks('Stock_DataDB.db', assets)
-    # main_stocks.repopulate_all_assets()
+    main_stocks = MainStocks('Stock_DataDB.db', assets)
+    main_stocks.table_manager.drop_all_tables()
+    main_stocks.table_manager.create_asset_table(main_stocks.table_manager.table_name, main_stocks.table_manager.columns)
+    main_stocks.repopulate_all_assets()
 
+    start = timeit.default_timer()
     data = DataManager(update_before=False, limit=50)
     dict_of_dfs = data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2018, 1, 1)),
-                                      TimeHandler.get_string_from_datetime(datetime(2018, 2, 1)))
-    list_of_final_symbols = data.list_of_symbols                                  
-    print()
+                                      TimeHandler.get_string_from_datetime(datetime(2018, 2, 1)), 
+                                      threading=threading)
+    list_of_final_symbols = data.list_of_symbols
+    end = timeit.default_timer()
+    return (end-start)-(api_end-api_start)
+
+
+if __name__ == '__main__':
+
+    tries = 1
+    ttime = 0
+    msg = ''
+    msg += f'Number of repeats: {tries}\n'
+    msg += 'Time with threading:'
+
+    for trial in range(tries):
+        print(f'Trial: {trial+1}')
+        ttime += time_it_func(False)
+
+    msg += f"{ttime/tries}\n"
+
+    # msg += 'Time without threading:'
+
+    # for trial in range(tries):
+    #     ttime += time_it_func(False)
+
+    # msg += f"{ttime/tries}\n"
+
+    # print(msg)
 
     # dbAddr = f'{os.path.join("tempDir", "Stock_DataDB_Test.db")}'
     # db_manager = DatabaseManager(dbAddr)

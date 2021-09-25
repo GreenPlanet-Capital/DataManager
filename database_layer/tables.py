@@ -25,10 +25,10 @@ class TableManager:
     def create_asset_table(self, table_name, columns):
         self.db.create_table(f'{table_name}', columns)
 
-    def drop_all_tables(self):
+    def drop_all_tables(self, exclude: list=[]):
         tables = self.list_tables()
         for table in tables:
-            if table != 'MainStockData':
+            if table not in exclude:
                 self.db.drop_table(table_name=table)
 
     def insert_asset(self, asset_data):
