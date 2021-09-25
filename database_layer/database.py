@@ -143,7 +143,7 @@ class DatabaseManager:
                 '''
         self._execute(query)
         query =f'''
-                INSERT INTO other."{table_name}"
+                INSERT or REPLACE INTO other."{table_name}"
                 SELECT * FROM main."{table_name}";
                 '''
         self._execute(query)
