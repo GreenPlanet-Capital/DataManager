@@ -100,7 +100,9 @@ class DataExtractor:
         this_list_symbols = list_symbols
         this_list_dates = list_dates
 
-        while currentRetries <= maxRetries and len(valid_tuples) != len(list_symbols):
+        while currentRetries <= maxRetries \
+            and len(valid_tuples) != len(list_symbols) \
+            and len(this_list_symbols)!=0:
             current_output = self.callHistoricalMultipleAlpaca(this_list_symbols,
                                                                this_list_dates, timeframe,
                                                                adjustment)
