@@ -91,7 +91,7 @@ class DataManager:
             warnings.warn(f'Start timestamp has changed from: {start_timestamp} to {new_start}')
         if new_end != end_timestamp:
             warnings.warn(f'End timestamp has changed from: {end_timestamp} to {new_end}')
-        print('Finished date validation!')
+        print('Finished validating date\n')
         return new_start, new_end
 
     def get_stock_data(self, start_timestamp, end_timestamp, api='Alpaca'):
@@ -101,7 +101,7 @@ class DataManager:
         print('Checking dates availability...')
         for stock in self._basket_of_symbols:
             self.get_one_stock_data(stock, start_timestamp, end_timestamp)
-        print('Finished checking dates availability!')
+        print('Finished checking dates availability!\n')
 
         list_tuples, partial_list_symbols = getattr(self._extractor, f'getMultipleListHistorical{api}')(
             self._required_symbols_data,
@@ -138,7 +138,6 @@ class DataManager:
 
 class MainStocks:
     def __init__(self, db_name='Stock_DataDB.db', assets: Assets = None):
-        self.table_manager = MainTableManager(os.path.join(DATAMGR_ABS_PATH,os.path.join("tempDir", db_name)))
         self.db_path = os.path.join(DATAMGR_ABS_PATH,os.path.join("tempDir", db_name))
         self.table_manager = MainTableManager(self.db_path)
         self.assets = assets
@@ -187,7 +186,7 @@ class DailyStockTables:
 
         # Slice list_of_tuples into groups
         number_of_tuples = len(list_of_tuples)
-        step_value = math.ceil(number_of_tuples/math.pow(10, len(str(number_of_tuples)-1)))
+        step_value = math.ceil(number_of_tuples/math.pow(10, len(str(number_of_tuples))-1))
         groups_of_tuples = []
         for i in range(0, number_of_tuples, step_value):
             end_value = i+step_value
@@ -197,10 +196,10 @@ class DailyStockTables:
 
         # Create the step_value+1 DBs
         list_main_stock_connections: Iterable[MainStocks] = []
-        for i in range(0, step_value+1):
+        for i in range(0, len(groups_of_tuples)):
             this_main_stock = MainStocks(db_name=f'Temp_DB{i}.db')
             this_main_stock.table_manager.drop_all_tables()
-            list_main_stock_connections.append()
+            list_main_stock_connections.append(this_main_stock)
 
         # TODO Threading here for outer for loop
         for list_of_tuples, main_stocks_connection in zip(groups_of_tuples, list_main_stock_connections):
@@ -210,11 +209,14 @@ class DailyStockTables:
         for main_stocks_connection in list_main_stock_connections:
             list_of_stock_tables = main_stocks_connection.table_manager.list_tables()
             for stock_table_name in list_of_stock_tables:
-                if stock_table_name == self.main_stocks.table_manager.table_name:
+                if stock_table_name != self.main_stocks.table_manager.table_name:
                     DailyStockDataTable(stock_table_name, self.main_stocks.table_manager.db)
-                
-                # Copying all tables including temp DB's MainStockData table
-                main_stocks_connection.table_manager.db.insert_table_into_another_db(self.main_stocks.db_path, stock_table_name)
+                    # Copying all tables excluding temp DB's MainStockData table
+                    # TODO if table exists in StockDataDB then update
+                    main_stocks_connection.table_manager.db.insert_table_into_another_db(self.main_stocks.db_path, stock_table_name)
+            
+            # TODO update the MainStockTable in StockDataDB instead of inserting
+            main_stocks_connection.table_manager.db.insert_table_into_another_db(self.main_stocks.db_path, self.main_stocks.table_manager.table_name)
 
         print('Update completed\n')
 
@@ -271,9 +273,9 @@ if __name__ == '__main__':
     # main_stocks = MainStocks('Stock_DataDB.db', assets)
     # main_stocks.repopulate_all_assets()
 
-    data = DataManager(update_before=False)
-    dict_of_dfs = data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2013, 1, 1)),
-                                      TimeHandler.get_string_from_datetime(datetime(2016, 2, 1)))
+    data = DataManager(update_before=False, limit=50)
+    dict_of_dfs = data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2018, 1, 1)),
+                                      TimeHandler.get_string_from_datetime(datetime(2018, 2, 1)))
     print()
 
     # dbAddr = f'{os.path.join("tempDir", "Stock_DataDB_Test.db")}'

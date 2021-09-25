@@ -28,7 +28,8 @@ class TableManager:
     def drop_all_tables(self):
         tables = self.list_tables()
         for table in tables:
-            self.db.drop_table(table_name=table)
+            if table != 'MainStockData':
+                self.db.drop_table(table_name=table)
 
     def insert_asset(self, asset_data):
         self.db.add(self.table_name, asset_data)

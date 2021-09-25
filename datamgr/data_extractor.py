@@ -2,6 +2,7 @@ import copy
 from datetime import datetime
 import sys
 import os
+from typing import Iterable
 from alpaca_trade_api.rest import REST, TimeFrame
 import asyncio
 import time
@@ -77,12 +78,13 @@ class DataExtractor:
                 min_date_timeframe = datePair[0]
             min_date_timeframe = min(min_date_timeframe, datePair[0])
             valid_days = this_exchange.valid_days(datePair[0], datePair[1])
-            list_dates[i] = (valid_days[0], valid_days[-1])
+            list_dates[i] = (TimeHandler.get_alpaca_string_from_timestamp(valid_days[0]), 
+                            TimeHandler.get_alpaca_string_from_timestamp(valid_days[-1]))
         date_difference = datetime.now() - TimeHandler.get_datetime_from_alpaca_string(min_date_timeframe)
-        if date_difference.days > 1000:
+        if date_difference.days > (365*5):
             raise Exception('Alpaca only has data on past 5 years')
 
-        def fix_output(list_tuples: [()]) -> dict:
+        def fix_output(list_tuples: Iterable[tuple]) -> dict:
             dict_stocks_df = {}
             for individual_tup in list_tuples:
                 df_this = individual_tup[1]
