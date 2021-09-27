@@ -217,7 +217,7 @@ class DailyStockTables:
         # Create the step_value+1 DBs
         list_main_stock_connections: Iterable[MainStocks] = []
         for i in range(0, len(groups_of_tuples)):
-            this_main_stock = MainStocks(db_name=f'Temp_DB{i}.db')
+            this_main_stock = MainStocks(db_name=os.path.join('threadDir', f'Temp_DB{i}.db'))
             this_main_stock.table_manager.drop_all_tables(exclude=[this_main_stock.table_manager.table_name])
             list_main_stock_connections.append(this_main_stock)
 
@@ -229,6 +229,7 @@ class DailyStockTables:
             self.insert_into_dbs_without_threading(
                 groups_of_tuples, list_main_stock_connections)
 
+        print('Merging temp DBs')
         for main_stocks_connection in list_main_stock_connections:
             list_of_stock_tables = main_stocks_connection.table_manager.list_tables()
             for stock_table_name in list_of_stock_tables:
@@ -335,7 +336,7 @@ def time_it_func(threading):
     main_stocks.repopulate_all_assets()
 
     start = timeit.default_timer()
-    data = DataManager(update_before=False, limit=300)
+    data = DataManager(update_before=False)
     dict_of_dfs = data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2018, 1, 1)),
                                       TimeHandler.get_string_from_datetime(datetime(2018, 2, 1)), 
                                       threading=threading)
@@ -346,7 +347,7 @@ def time_it_func(threading):
 
 if __name__ == '__main__':
 
-    tries = 5
+    tries = 1
     ttime = 0
     msg = ''
     msg += f'Number of repeats: {tries}\n'
@@ -358,13 +359,13 @@ if __name__ == '__main__':
 
     msg += f"{ttime/tries}\n"
 
-    msg += 'Time without threading:'
+    # msg += 'Time without threading:'
 
-    for trial in range(tries):
-        print(f'Trial: {trial+1}')
-        ttime += time_it_func(False)
+    # for trial in range(tries):
+    #     print(f'Trial: {trial+1}')
+    #     ttime += time_it_func(False)
 
-    msg += f"{ttime/tries}\n"
+    # msg += f"{ttime/tries}\n"
 
     print(msg)
 

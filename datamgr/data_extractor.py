@@ -70,7 +70,7 @@ class DataExtractor:
             - `maxRetries`: number of times to retry Alpaca calls when encountering exceptions 
     """
     def getMultipleListHistoricalAlpaca(self, list_symbols, list_dates, timeframe: TimeFrame, adjustment='all',
-                                        exchange_name='NYSE', maxRetries=3):
+                                        exchange_name='NYSE', maxRetries=5):
         this_exchange = mcal.get_calendar(exchange_name)
         min_date_timeframe = False
         for i, datePair in enumerate(list_dates):
