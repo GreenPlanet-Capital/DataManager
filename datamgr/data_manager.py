@@ -127,7 +127,7 @@ class DataManager:
         print('Finished getting data from API!\n')
 
         if not (len(list_tuples) == 0) or list_tuples:
-            self._daily_stocks.update_daily_stock_data(list_tuples, threading)
+            self._daily_stocks.update_daily_stock_data(list_tuples, threading=threading)
         self.reset_required_vars()
         self._extractor.AsyncObj.reset_async_list()
 
@@ -196,7 +196,7 @@ class DailyStockTables:
         self.main_stocks = main_stocks
         self.db = self.main_stocks.table_manager.db
 
-    def update_daily_stock_data(self, list_of_tuples: list, threading=True):
+    def update_daily_stock_data(self, list_of_tuples: list, slice_val=50, threading=True):
         """
         Input: list_of_tuples
         Format: [('SYMBOL1', pandas.Dataframe), ('SYMBOL2', pandas.Dataframe)...]
@@ -206,8 +206,8 @@ class DailyStockTables:
 
         # Slice list_of_tuples into groups
         number_of_tuples = len(list_of_tuples)
-        step_value = math.ceil(
-            number_of_tuples / math.pow(10, len(str(number_of_tuples)) - 1))
+        slice_val = min(slice_val, number_of_tuples // 10)
+        step_value = math.ceil(number_of_tuples / slice_val)
         groups_of_tuples = []
         for i in range(0, number_of_tuples, step_value):
             end_value = i + step_value
@@ -340,7 +340,7 @@ def time_it_func(threading):
     main_stocks.repopulate_all_assets()
 
     start = timeit.default_timer()
-    data = DataManager(update_before=False)
+    data = DataManager(update_before=False, limit=500)
     dict_of_dfs = data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2018, 1, 1)),
                                       TimeHandler.get_string_from_datetime(datetime(2018, 2, 1)),
                                       threading=threading)
@@ -363,13 +363,13 @@ if __name__ == '__main__':
 
     msg += f"{ttime / tries}\n"
 
-    # msg += 'Time without threading:'
+    msg += 'Time without threading:'
 
-    # for trial in range(tries):
-    #     print(f'Trial: {trial+1}')
-    #     ttime += time_it_func(False)
+    for trial in range(tries):
+        print(f'Trial: {trial+1}')
+        ttime += time_it_func(False)
 
-    # msg += f"{ttime/tries}\n"
+    msg += f"{ttime/tries}\n"
 
     print(msg)
 

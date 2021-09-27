@@ -1,6 +1,6 @@
 import configparser
 import os
-os.environ['DATAMGR_ABS_PATH'] = '/Users/atharvakale/scripts/DataManager'
+os.environ['DATAMGR_ABS_PATH'] = '/home/lifewhiz/projects/DataManager'
 if 'DATAMGR_ABS_PATH' not in os.environ:
     raise EnvironmentError('Need to set DATAMGR_ABS_PATH env variable')
 DATAMGR_ABS_PATH = os.environ['DATAMGR_ABS_PATH']
