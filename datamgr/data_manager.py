@@ -24,12 +24,14 @@ from datamgr.data_extractor import DataExtractor
 api_start = 0
 api_end = 0
 
+
 class DataManager:
     """
     Provides financial data for a certain set of stock symbols.
 
     Example:
     data = DataManager(limit=10, update_before=True, exchangeName = 'NYSE', isDelisted=True)
+    list_of_final_symbols = data.list_of_symbols
 
     Inputs:
         - Keyword args **criteria:
@@ -115,7 +117,8 @@ class DataManager:
         print('Finished checking dates availability!\n')
 
         print('Getting data from API.')
-        global api_start; global api_end
+        global api_start;
+        global api_end
         api_start = timeit.default_timer()
         list_tuples, partial_list_symbols = getattr(self._extractor, f'getMultipleListHistorical{api}')(
             self._required_symbols_data,
@@ -123,7 +126,7 @@ class DataManager:
         api_end = timeit.default_timer()
         print('Finished getting data from API!\n')
 
-        if not(len(list_tuples) == 0) or list_tuples:
+        if not (len(list_tuples) == 0) or list_tuples:
             self._daily_stocks.update_daily_stock_data(list_tuples, threading)
         self.reset_required_vars()
         self._extractor.AsyncObj.reset_async_list()
@@ -147,7 +150,7 @@ class DataManager:
                 self._required_symbols_data.append(stock_symbol)
                 self._required_dates.append((TimeHandler.get_alpaca_string_from_string(
                     TimeHandler.get_string_from_datetime(req_end)),
-                    TimeHandler.get_alpaca_string_from_string(end_timestamp)))
+                                             TimeHandler.get_alpaca_string_from_string(end_timestamp)))
         else:
             self._required_symbols_data.append(stock_symbol)
             self._required_dates.append((TimeHandler.get_alpaca_string_from_string(start_timestamp),
@@ -200,16 +203,14 @@ class DailyStockTables:
         """
 
         print('Updating DailyStockTables Database...')
-        # TODO Create several DBs, slice the list_of_tuples, insert tables into each DB,
-        #      copy all the additional tables into the Main DB, delete the additional DBs.
 
         # Slice list_of_tuples into groups
         number_of_tuples = len(list_of_tuples)
         step_value = math.ceil(
-            number_of_tuples/math.pow(10, len(str(number_of_tuples))-1))
+            number_of_tuples / math.pow(10, len(str(number_of_tuples)) - 1))
         groups_of_tuples = []
         for i in range(0, number_of_tuples, step_value):
-            end_value = i+step_value
+            end_value = i + step_value
             if end_value > number_of_tuples:
                 end_value = number_of_tuples
             groups_of_tuples.append(list_of_tuples[i:end_value])
@@ -255,7 +256,8 @@ class DailyStockTables:
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = {
-                executor.submit(self.insert_into_dbs_one_connection, list_of_tuples, main_stocks_connection): main_stocks_connection
+                executor.submit(self.insert_into_dbs_one_connection, list_of_tuples,
+                                main_stocks_connection): main_stocks_connection
                 for list_of_tuples, main_stocks_connection in zip(groups_of_tuples, list_main_stock_connections)
             }
 
@@ -327,22 +329,24 @@ class DailyStockDataTable:
         return self.table_manager.get_dates_for_available_data()
 
 
+# Testing function
 def time_it_func(threading):
     assets = Assets('AssetDB.db')
     # assets.update_db_alpaca_assets()
     main_stocks = MainStocks('Stock_DataDB.db', assets)
     main_stocks.table_manager.drop_all_tables()
-    main_stocks.table_manager.create_asset_table(main_stocks.table_manager.table_name, main_stocks.table_manager.columns)
+    main_stocks.table_manager.create_asset_table(main_stocks.table_manager.table_name,
+                                                 main_stocks.table_manager.columns)
     main_stocks.repopulate_all_assets()
 
     start = timeit.default_timer()
     data = DataManager(update_before=False)
     dict_of_dfs = data.get_stock_data(TimeHandler.get_string_from_datetime(datetime(2018, 1, 1)),
-                                      TimeHandler.get_string_from_datetime(datetime(2018, 2, 1)), 
+                                      TimeHandler.get_string_from_datetime(datetime(2018, 2, 1)),
                                       threading=threading)
     list_of_final_symbols = data.list_of_symbols
     end = timeit.default_timer()
-    return (end-start)-(api_end-api_start)
+    return (end - start) - (api_end - api_start)
 
 
 if __name__ == '__main__':
@@ -354,10 +358,10 @@ if __name__ == '__main__':
     msg += 'Time with threading:'
 
     for trial in range(tries):
-        print(f'Trial: {trial+1}')
+        print(f'Trial: {trial + 1}')
         ttime += time_it_func(threading=True)
 
-    msg += f"{ttime/tries}\n"
+    msg += f"{ttime / tries}\n"
 
     # msg += 'Time without threading:'
 
