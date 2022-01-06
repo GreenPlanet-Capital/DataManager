@@ -47,7 +47,7 @@ class DataManager:
     """
 
     def __init__(self, limit=None, asset_db_name='AssetDB.db', stock_db_name='Stock_DataDB.db', update_before=False,
-                 **criteria):
+                 freq_data='1day', **criteria):
         self._assets = Assets(asset_db_name)
         self._main_stocks = MainStocks(stock_db_name, self._assets)
         self._extractor = DataExtractor()
@@ -79,6 +79,7 @@ class DataManager:
                 warnings.warn(
                     'Limit is greater than available symbols for defined criteria')
 
+        self.freq_data = freq_data
         self._required_symbols_data, self._required_dates = [], []
         self.list_of_symbols = []
 
@@ -117,12 +118,20 @@ class DataManager:
         print('Finished checking dates availability!\n')
 
         print('Getting data from API.')
-        global api_start;
+        global api_start
         global api_end
         api_start = timeit.default_timer()
+
+        if self.freq_data == '1day':
+            type_data = TimeFrame.Day
+        elif self.freq_data == '1min':
+            type_data = TimeFrame.Minute
+        else:
+            type_data = TimeFrame.Sec
+
         list_tuples, partial_list_symbols = getattr(self._extractor, f'getMultipleListHistorical{api}')(
             self._required_symbols_data,
-            self._required_dates, TimeFrame.Day)
+            self._required_dates, type_data)
         api_end = timeit.default_timer()
         print('Finished getting data from API!\n')
 
