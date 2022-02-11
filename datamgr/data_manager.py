@@ -47,7 +47,7 @@ class DataManager:
     """
 
     def __init__(self, limit=None, asset_db_name='AssetDB.db', stock_db_name='Stock_DataDB.db', update_before=False,
-                 freq_data='1day', **criteria):
+                 freq_data='1Day', **criteria):
         self._assets = Assets(asset_db_name)
         self._main_stocks = MainStocks(stock_db_name, self._assets)
         self._extractor = DataExtractor()
@@ -122,12 +122,7 @@ class DataManager:
         global api_end
         api_start = timeit.default_timer()
 
-        if self.freq_data == '1day':
-            type_data = TimeFrame.Day
-        elif self.freq_data == '1min':
-            type_data = TimeFrame.Minute
-        else:
-            type_data = TimeFrame.Sec
+        type_data = self.freq_data
 
         list_tuples, partial_list_symbols = getattr(self._extractor, f'getMultipleListHistorical{api}')(
             self._required_symbols_data,
@@ -216,6 +211,8 @@ class DailyStockTables:
         # Slice list_of_tuples into groups
         number_of_tuples = len(list_of_tuples)
         slice_val = min(slice_val, number_of_tuples // 10)
+        if (slice_val==0):
+            slice_val = number_of_tuples
         step_value = math.ceil(number_of_tuples / slice_val)
         groups_of_tuples = []
         for i in range(0, number_of_tuples, step_value):
