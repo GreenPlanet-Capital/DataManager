@@ -4,3 +4,4 @@ pytest
 iexfinance
 alpaca-trade-api
 pandas_market_calendars
+lxml
