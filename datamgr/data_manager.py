@@ -117,6 +117,12 @@ class DataManager:
             self.get_one_stock_data(stock, start_timestamp, end_timestamp)
         print('Finished checking dates availability!\n')
 
+        # No data needs to be fetched
+        if len(self._required_dates) == 0:
+            print('All data is available locally')
+            self.list_of_symbols = self._basket_of_symbols
+            return self._daily_stocks.get_daily_stock_data(self.list_of_symbols, start_timestamp, end_timestamp)
+
         print('Getting data from API.')
         global api_start
         global api_end
@@ -292,10 +298,10 @@ class DailyStockTables:
                                                               dataAvailableFrom=dataAvailableFrom,
                                                               dataAvailableTo=dataAvailableTo)
 
-    def get_daily_stock_data(self, list_of_symbols, start_timestamp, end_timestamp):
+    def get_daily_stock_data(self, this_list_of_symbols, start_timestamp, end_timestamp):
         dictStockData = {}
         print('Reading data from database.')
-        for individualSymbol in list_of_symbols:
+        for individualSymbol in this_list_of_symbols:
             thisStockTable = DailyStockDataTable(
                 individualSymbol, self.db).table_manager
             listData = thisStockTable.get_data(start_timestamp, end_timestamp)
@@ -303,7 +309,7 @@ class DailyStockTables:
                 thisStockTable.columns.keys()))
             dictStockData[individualSymbol] = thisDf
         print(
-            f'Read complete! Returning dataframe(s) for {len(list_of_symbols)} symbols.\n')
+            f'Read complete! Returning dataframe(s) for {len(this_list_of_symbols)} symbols.\n')
         return dictStockData
 
 
