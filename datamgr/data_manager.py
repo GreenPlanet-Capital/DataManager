@@ -47,7 +47,7 @@ class DataManager:
     """
 
     def __init__(self, limit=None, asset_db_name='AssetDB.db', stock_db_name='Stock_DataDB.db', update_before=False,
-                 **criteria):
+                 freq_data='1Day', **criteria):
         self._assets = Assets(asset_db_name)
         self._main_stocks = MainStocks(stock_db_name, self._assets)
         self._extractor = DataExtractor()
@@ -79,6 +79,7 @@ class DataManager:
                 warnings.warn(
                     'Limit is greater than available symbols for defined criteria')
 
+        self.freq_data = freq_data
         self._required_symbols_data, self._required_dates = [], []
         self.list_of_symbols = []
 
@@ -117,12 +118,15 @@ class DataManager:
         print('Finished checking dates availability!\n')
 
         print('Getting data from API.')
-        global api_start;
+        global api_start
         global api_end
         api_start = timeit.default_timer()
+
+        type_data = self.freq_data
+
         list_tuples, partial_list_symbols = getattr(self._extractor, f'getMultipleListHistorical{api}')(
             self._required_symbols_data,
-            self._required_dates, TimeFrame.Day)
+            self._required_dates, type_data)
         api_end = timeit.default_timer()
         print('Finished getting data from API!\n')
 
@@ -207,6 +211,8 @@ class DailyStockTables:
         # Slice list_of_tuples into groups
         number_of_tuples = len(list_of_tuples)
         slice_val = min(slice_val, number_of_tuples // 10)
+        if (slice_val==0):
+            slice_val = number_of_tuples
         step_value = math.ceil(number_of_tuples / slice_val)
         groups_of_tuples = []
         for i in range(0, number_of_tuples, step_value):
