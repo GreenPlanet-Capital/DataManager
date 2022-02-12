@@ -118,17 +118,18 @@ class MainTableManager(TableManager):
         dataAvailableFrom = TimeHandler.get_datetime_from_string(fetchDateStart)
         dataAvailableTo = TimeHandler.get_datetime_from_string(fetchDateEnd)
 
-        if (start_timestamp < dataAvailableFrom) and (end_timestamp < dataAvailableFrom): # req_start and req_end are before available dates
+        if (start_timestamp.date() < dataAvailableFrom.date()) and (end_timestamp.date() < dataAvailableFrom.date()): # req_start and req_end are before available dates
             return False, start_timestamp, end_timestamp
-        if (start_timestamp > dataAvailableTo) and (end_timestamp > dataAvailableTo): # req_start and req_end are after available dates
+        if (start_timestamp.date() > dataAvailableTo.date()) and (end_timestamp.date() > dataAvailableTo.date()): # req_start and req_end are after available dates
             return False, start_timestamp, end_timestamp
-        if (start_timestamp < dataAvailableFrom) and (end_timestamp < dataAvailableTo): # end_date is within range, but start_date is left of available
+        if (start_timestamp.date() < dataAvailableFrom.date()) and (end_timestamp.date() < dataAvailableTo.date()): # end_date is within range, but start_date is left of available
             return True, dataAvailableFrom - timedelta(days=1), None
-        if (start_timestamp > dataAvailableFrom) and (end_timestamp > dataAvailableTo): # start_date is within range, but end_date is right of available
+        if (start_timestamp.date() > dataAvailableFrom.date()) and (end_timestamp.date() > dataAvailableTo.date()): # start_date is within range, but end_date is right of available
             return True, None, dataAvailableTo + timedelta(days=1)
-        if (start_timestamp < dataAvailableFrom) and (end_timestamp > dataAvailableTo): # start_date is left of available, end_date is right of available
+        if (start_timestamp.date() < dataAvailableFrom.date()) and (end_timestamp.date() > dataAvailableTo.date()): # start_date is left of available, end_date is right of available
             return True, dataAvailableFrom - timedelta(days=1), dataAvailableTo + timedelta(days=1)
-        
+        else:
+            return True, None, None
 
 
 class DailyDataTableManager:
