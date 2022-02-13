@@ -131,7 +131,7 @@ class DataExtractor:
             this_list_dates = list_failed_dates
             currentRetries += 1
 
-        print(len(valid_tuples), len(partial_symbols), len(empty_symbols))
+        print(f'{len(valid_tuples)=} ,{len(partial_symbols)=}, {len(empty_symbols)=}')
         partial_symbols.update(empty_symbols)
         return valid_tuples, list(partial_symbols)
 
