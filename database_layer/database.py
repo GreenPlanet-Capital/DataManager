@@ -1,5 +1,7 @@
 import sqlite3
 
+from DataManager.utils.timehandler import TimeHandler
+
 
 class DatabaseManager:
     def __init__(self, database_path):
@@ -79,6 +81,11 @@ class DatabaseManager:
 
         start_timestamp = criteria["start_timestamp"]
         end_timestamp = criteria["end_timestamp"]
+
+        # set the end_timestamp to XX-XX-XX 23:59:59 to avoid off by one
+        end_timestamp_datetime = TimeHandler.get_datetime_from_string(end_timestamp)
+        end_timestamp_datetime = end_timestamp_datetime.replace(hour=23, minute=59, second=59)
+        end_timestamp = TimeHandler.get_string_from_datetime(end_timestamp_datetime)
         values = start_timestamp, end_timestamp
 
         if criteria:
