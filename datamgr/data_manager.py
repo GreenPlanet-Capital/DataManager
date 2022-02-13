@@ -237,7 +237,6 @@ class DailyStockTables:
         if threading:
             self.insert_into_dbs_with_threading(
                 groups_of_tuples, list_main_stock_connections)
-            print()
         else:
             self.insert_into_dbs_without_threading(
                 groups_of_tuples, list_main_stock_connections)
