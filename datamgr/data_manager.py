@@ -98,10 +98,10 @@ class DataManager:
             date_range[0]), TimeHandler.get_string_from_timestamp(date_range[-1])
         if new_start != start_timestamp:
             print(
-                f'Start timestamp has changed from: {start_timestamp} to {new_start}')
+                f'NOT A TRADING DAY: Start timestamp has changed from: {start_timestamp} to {new_start}')
         if new_end != end_timestamp:
             print(
-                f'End timestamp has changed from: {end_timestamp} to {new_end}')
+                f'NOT A TRADING DAY: End timestamp has changed from: {end_timestamp} to {new_end}')
 
         return new_start, new_end, date_range
 
