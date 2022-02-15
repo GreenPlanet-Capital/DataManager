@@ -103,12 +103,12 @@ class DataManager:
             print(
                 f'End timestamp has changed from: {end_timestamp} to {new_end}')
 
-        return new_start, new_end
+        return new_start, new_end, date_range
 
     def get_stock_data(self, start_timestamp, end_timestamp, api='Alpaca', threading=True):
 
         print('Validating Dates...')
-        start_timestamp, end_timestamp = self.validate_timestamps(
+        start_timestamp, end_timestamp, _ = self.validate_timestamps(
             start_timestamp, end_timestamp)
         print('Finished validating date\n')
 
