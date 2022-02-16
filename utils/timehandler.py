@@ -40,7 +40,7 @@ class TimeHandler:
 
     @staticmethod
     def get_datetime_from_timestamp(timestampInput: Timestamp):
-        return timestampInput.date()
+        return timestampInput.to_pydatetime().replace(tzinfo=None)
 
     @staticmethod
     def get_datetime_from_alpaca_string(datetime_input: str):
