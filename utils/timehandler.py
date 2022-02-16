@@ -45,3 +45,11 @@ class TimeHandler:
     @staticmethod
     def get_datetime_from_alpaca_string(datetime_input: str):
         return datetime.strptime(datetime_input, '%Y-%m-%d')
+
+    @staticmethod
+    def get_clean_datetime_from_string(string_inp: str):
+        return TimeHandler.get_datetime_from_string(string_inp).replace(hour=0, minute=0)
+
+    @staticmethod
+    def get_clean_string_from_string(string_inp: str):
+        return TimeHandler.get_clean_datetime_from_string(string_inp).strftime('%Y-%m-%d %H:%M:%S')
