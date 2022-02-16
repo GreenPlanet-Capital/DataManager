@@ -274,7 +274,7 @@ class DailyStockTables:
 
             for fut in concurrent.futures.as_completed(futures):
                 original_task = futures[fut]
-                print(f"Status: {original_task.db_path} is {fut.result()}")
+                # print(f"Status: {original_task.db_path} is {fut.result()}")
 
         print()
 
