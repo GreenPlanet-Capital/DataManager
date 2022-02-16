@@ -261,7 +261,7 @@ class DailyStockTables:
         for list_of_tuples, main_stocks_connection in zip(groups_of_tuples, list_main_stock_connections):
             self.insert_into_dbs_one_connection(
                 list_of_tuples, main_stocks_connection)
-            print(f"Status: {main_stocks_connection.db_path} is Complete")
+            # print(f"Status: {main_stocks_connection.db_path} is Complete")
 
     def insert_into_dbs_with_threading(self, groups_of_tuples: Iterable[tuple], list_main_stock_connections):
 
