@@ -24,7 +24,7 @@ class DataExtractor:
         Example:
         extractor = DataExtractor()
         complete_data, partial_data = extractor.getMultipleListHistoricalAlpaca(required_symbols_data,
-            required_dates, TimeFrame.Day)
+            required_dates, TimeFrame.Day, exchangeName)
 
         Inputs:
             - `None`
@@ -59,7 +59,7 @@ class DataExtractor:
 
         Example:
         complete_data, partial_data = getMultipleListHistoricalAlpaca(list_symbols, list_dates, TimeFrame.day, 
-                                        adjustment='all', exchange_name='NYSE', maxRetries=3)
+                                        exchange_name, adjustment='all', maxRetries=3)
 
         Inputs:
             - `list_symbols`: list of symbols to get data from (can be duplicated)
@@ -69,8 +69,8 @@ class DataExtractor:
             - `exchange_name`: exchange to check against for output validation
             - `maxRetries`: number of times to retry Alpaca calls when encountering exceptions 
     """
-    def getMultipleListHistoricalAlpaca(self, list_symbols, list_dates, timeframe: TimeFrame, adjustment='all',
-                                        exchange_name='NYSE', maxRetries=5):
+    def getMultipleListHistoricalAlpaca(self, list_symbols, list_dates, timeframe: TimeFrame, exchange_name,
+                                        adjustment='all', maxRetries=5):
         this_exchange = mcal.get_calendar(exchange_name)
         min_date_timeframe = False
         for i, datePair in enumerate(list_dates):

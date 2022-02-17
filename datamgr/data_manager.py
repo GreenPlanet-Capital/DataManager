@@ -132,7 +132,7 @@ class DataManager:
 
         list_tuples, partial_list_symbols = getattr(self._extractor, f'getMultipleListHistorical{api}')(
             self._required_symbols_data,
-            self._required_dates, type_data)
+            self._required_dates, type_data, self._exchange_name)
         api_end = timeit.default_timer()
         print('Finished getting data from API!\n')
 
@@ -280,6 +280,16 @@ class DailyStockTables:
 
     def insert_into_dbs_one_connection(self, list_of_tuples, main_stocks_connection):
         for stock_symbol, df in list_of_tuples:
+            dict_columns_type = {
+                'open': float,
+                'high': float,
+                'low': float,
+                'close': float,
+                'volume': int,
+                'trade_count': int,
+                'vwap': float,
+            }
+            df = df.astype(dict_columns_type)
             self.update_one_stock_table(
                 stock_symbol, df, main_stocks_connection)
         return 'Complete'
