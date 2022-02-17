@@ -172,6 +172,7 @@ class DatabaseManager:
             query = f'SELECT * from other.{main_table_name} WHERE stockSymbol="{ticker_}";'
             _, second_start_ts, second_end_ts, updated_time = self._execute(query).fetchone()
             list_all = [start_timestamp, end_timestamp, second_start_ts, second_end_ts]
+            list_all = [x for x in list_all if x is not None]
             final_start, final_end = min(list_all), max(list_all)
 
             query =f'''
