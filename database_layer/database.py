@@ -158,3 +158,30 @@ class DatabaseManager:
                 DETACH other;
                 '''
         self._execute(query)
+
+    def insert_main_table_into_another_db(self, attach_db_path, main_table_name):
+        query = f'''
+                ATTACH DATABASE '{attach_db_path}' AS other;
+                '''
+        self._execute(query)
+
+        query = f'SELECT * from main.{main_table_name};'
+        final_start, final_end = '', ''
+
+        for ticker_, start_timestamp, end_timestamp, _ in self._execute(query).fetchall():
+            query = f'SELECT * from other.{main_table_name} WHERE stockSymbol="{ticker_}";'
+            _, second_start_ts, second_end_ts, updated_time = self._execute(query).fetchone()
+            list_all = [start_timestamp, end_timestamp, second_start_ts, second_end_ts]
+            final_start, final_end = min(list_all), max(list_all)
+
+            query =f'''
+                    INSERT or REPLACE INTO other."{main_table_name}" 
+                    (stockSymbol ,dataAvailableFrom, dataAvailableTo, dateLastUpdated)
+                    VALUES ('{ticker_}', '{final_start}', '{final_end}', '{updated_time}');
+                    '''
+            self._execute(query)
+
+        query =f'''
+                DETACH other;
+                '''
+        self._execute(query)

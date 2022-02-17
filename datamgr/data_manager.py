@@ -252,7 +252,7 @@ class DailyStockTables:
                     main_stocks_connection.table_manager.db.insert_table_into_another_db(
                         self.main_stocks.db_path, stock_table_name)
 
-            main_stocks_connection.table_manager.db.insert_table_into_another_db(
+            main_stocks_connection.table_manager.db.insert_main_table_into_another_db(
                 self.main_stocks.db_path, self.main_stocks.table_manager.table_name)
 
         print('Update completed\n')
