@@ -137,4 +137,5 @@ dmypy.json
 #Microsoft Office Temporary Files
 ~$*
 
-data/
+#Miscellaneous
+env
