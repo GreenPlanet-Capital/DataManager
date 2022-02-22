@@ -1,5 +1,4 @@
 from datetime import datetime
-from time import strftime
 import numpy as np
 from pandas import Timestamp
 

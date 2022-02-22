@@ -1,12 +1,9 @@
 import os
-import sys
-
-sys.path.insert(0, os.getcwd())  # Resolve Importing errors=
-from assetmgr.asset_extractor import AssetExtractor
+from DataManager.assetmgr.asset_extractor import AssetExtractor
 from datetime import datetime, timezone
-from database_layer.tables import AssetTableManager
-from utils.timehandler import TimeHandler
-from core import setEnv, DATAMGR_ABS_PATH
+from DataManager.database_layer.tables import AssetTableManager
+from DataManager.utils.timehandler import TimeHandler
+from DataManager.core import setEnv, DATAMGR_ABS_PATH
 from pandas import read_html
 
 
@@ -82,6 +79,7 @@ class Assets:
 
 
 if __name__ == '__main__':
+    #Outdated main
     os.environ['SANDBOX_MODE'] = 'True'
     mgr = Assets('AssetDB.db')
     mgr.update_db_alpaca_assets()

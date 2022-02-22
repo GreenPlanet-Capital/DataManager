@@ -4,7 +4,7 @@ import asyncio
 import sys
 from alpaca_trade_api.rest import TimeFrame, URL
 from alpaca_trade_api.rest_async import gather_with_concurrency, AsyncRest
-from core import *
+from DataManager.core import *
 
 
 class DataType(str, Enum):

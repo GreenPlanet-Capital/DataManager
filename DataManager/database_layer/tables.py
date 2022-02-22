@@ -1,14 +1,9 @@
 from datetime import timedelta
-from sqlite3.dbapi2 import Time
-import sys
 import os
-
-sys.path.insert(0, os.getcwd())  # Resolve Importing errors
-from database_layer.database import DatabaseManager
-from utils.conversions import _Conversions
-from utils.timehandler import TimeHandler
-from core import DATAMGR_ABS_PATH
-
+from DataManager.database_layer.database import DatabaseManager
+from DataManager.utils.conversions import _Conversions
+from DataManager.utils.timehandler import TimeHandler
+from DataManager.core import DATAMGR_ABS_PATH
 
 class TableManager:
     def __init__(self, db_name):

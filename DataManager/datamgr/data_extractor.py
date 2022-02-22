@@ -1,20 +1,15 @@
 import copy
 from datetime import datetime
-import sys
 import os
 from typing import Iterable
 from alpaca_trade_api.rest import REST, TimeFrame
 import asyncio
 import time
 import pandas_market_calendars as mcal
-from utils.timehandler import TimeHandler
-import pandas as pd
-from database_layer.tables import DailyDataTableManager
-
-sys.path.insert(0, os.getcwd())  # Resolve Importing errors
-from assetmgr.asset_manager import Assets
-from datamgr.historic_async import HistoricalAsync, DataType
-from core import *
+from DataManager.utils.timehandler import TimeHandler
+from DataManager.assetmgr.asset_manager import Assets
+from DataManager.datamgr.historic_async import HistoricalAsync
+from DataManager.core import *
 
 
 class DataExtractor:

@@ -1,25 +1,21 @@
 from datetime import datetime, timezone
-import sys
 import os
 from typing import Iterable
 import warnings
 import numpy as np
 import pandas as pd
-from alpaca_trade_api.rest import TimeFrame
 from pandas.core.frame import DataFrame
 import pandas_market_calendars as mcal
 import math
 import concurrent.futures
 import timeit
-
-sys.path.insert(0, os.getcwd())  # Resolve Importing errors
-from utils.timehandler import TimeHandler
-from utils.conversions import _Conversions
-from database_layer.tables import DailyDataTableManager, MainTableManager
-from core import DATAMGR_ABS_PATH
-from assetmgr.asset_manager import Assets
-from database_layer.database import DatabaseManager
-from datamgr.data_extractor import DataExtractor
+from DataManager.utils.timehandler import TimeHandler
+from DataManager.utils.conversions import _Conversions
+from DataManager.database_layer.tables import DailyDataTableManager, MainTableManager
+from DataManager.core import DATAMGR_ABS_PATH
+from DataManager.assetmgr.asset_manager import Assets
+from DataManager.database_layer.database import DatabaseManager
+from DataManager.datamgr.data_extractor import DataExtractor
 
 api_start = 0
 api_end = 0

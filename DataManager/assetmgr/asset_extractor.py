@@ -1,20 +1,14 @@
-import sys
-import os
-from pynse import Nse
 import concurrent.futures
-
-sys.path.insert(0, os.getcwd())  # Resolve Importing errors
-from assetmgr.nse_list import listNSESymbols
+from DataManager.assetmgr.nse_list import listNSESymbols
 from iexfinance import refdata
 from alpaca_trade_api.rest import REST
-from core import *
-
+from DataManager.core import *
 
 class AssetExtractor:
     def __init__(self):
         setEnv()
         self.AlpacaAPI = REST(raw_data=True)
-        self.NSEApi = Nse()
+        self.NSEApi = None
 
     def getAllIEXCloudAssets(self):
         return refdata.get_symbols()

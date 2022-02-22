@@ -8,8 +8,8 @@
 UseSandbox=False
 
 [Alpaca]
-AlpacaKey=KEY_HERE
-AlpacaSecret=SECRET_HERE
+alpacakey=KEY_HERE
+alpacasecret=SECRET_HERE
 
 [IEX_Sandbox]
 IEX_Sandbox_Public=PUBLIC_HERE
