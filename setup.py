@@ -4,7 +4,7 @@ with open('README.md') as readme_file:
     README = readme_file.read()
 
 setup_args = dict(
-    name='DataManager',
+    name='datamanager',
     version='0.0.0',
     description='A library to manage and return financial asset data using Alpaca',
     long_description_content_type="text/markdown",
@@ -17,10 +17,13 @@ setup_args = dict(
     url='https://github.com/GreenPlanet-Capital/DataManager',
     download_url='https://github.com/GreenPlanet-Capital/DataManager',
     include_package_data=True,
-    
+    entry_points={
+        'console_scripts': ['datamgr=DataManager.shell:main']
+    },
 )
 
 install_requires = [
+    'setuptools',
     'wheel',
     'dataset',
     'pytest',
