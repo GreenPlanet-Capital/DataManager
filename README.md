@@ -3,6 +3,7 @@
 ### Create a virtual environment (highly recommended)
 ~~~shell
 foo@bar:~$ python3 -m venv env
+foo@bar:~$ source env/bin/activate
 ~~~
 ### Install DataManager
 ~~~shell
