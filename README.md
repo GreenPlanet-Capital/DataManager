@@ -1,41 +1,62 @@
 # Data Manager
 ## Setup
-### Create a assetConfig.cfg
-- Create an assetConfig.cfg file in the directory called config_files
-- Insert your API Keys and Secrets here as follows:
+### Create a virtual environment (highly recommended)
+~~~shell
+foo@bar:~$ python3 -m venv env
 ~~~
-[Globals]
-UseSandbox=False
-
-[Alpaca]
-alpacakey=KEY_HERE
-alpacasecret=SECRET_HERE
-
-[IEX_Sandbox]
-IEX_Sandbox_Public=PUBLIC_HERE
-IEX_Sandbox_Private=PRIVATE_HERE
-
-[IEX_Real]
-IEX_Public=PUBLIC_HERE
-IEX_Private=PRIVATE_HERE
+### Install DataManager
+~~~shell
+foo@bar:~$ pip3 install git+https://github.com/GreenPlanet-Capital/DataManager@install_b
+~~~
+### Setup your API Keys
+~~~shell
+foo@bar:~$ datamgr set api-keys Alpaca AlpacaKey <public-key-here> AlpacaSecret <private-key-here>
 ~~~
 
 ### Calling from External Directory
 ```python
-import os, sys
-sys.path.append('DataManager') # Insert DataManager to path
-
-# Set env variable to absolute path of datamanager folder
-os.environ['DATAMGR_ABS_PATH'] = '/home/lifewhiz/projects/DataManager'
-
-# Now import DataManager
 from DataManager.datamgr import data_manager
-this_manager = data_manager.DataManager(limit=10, update_before=True, exchangeName = 'NYSE', indexName='snp', isDelisted=False)
-dict_of_dfs = this_manager.get_stock_data('2018-06-01 00:00:00', 
-                                          '2019-06-01 00:00:00',
-                                          api='Alpaca')
+
+start_timestamp = '2021-06-01'
+end_timestamp = '2021-07-01'
+exchangeName = 'NYSE'
+limit = 10
+update_before = True
+
+this_manager = data_manager.DataManager(
+    limit=limit
+    update_before=update_before
+    exchangeName=exchangeName,
+    isDelisted=False
+)
+
+dict_of_dfs = this_manager.get_stock_data(
+    start_timestamp,
+    end_timestamp,
+    api='Alpaca'
+)
+
 list_of_final_symbols = this_manager.list_of_symbols
 ```
+
+### Additional shell commands to datamgr
+~~~shell
+foo@bar:~$ datamgr show-config
+[Alpaca]
+alpacakey=KEY HERE
+alpacasecret=KEY HERE
+~~~
+~~~shell
+foo@bar:~$ datamgr reset
+SUCCESS: Config file was reset
+~~~
+~~~shell
+foo@bar:~$ datamgr uninstall
+SUCCESS: Temporary files were deleted.
+Deleted <path>/DataManager/config_files/assetConfig.cfg
+Deleted <path>/DataManager/tempDir/AssetDB.db
+...
+~~~
 
 
 ## Examples of API Returns
