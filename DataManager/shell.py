@@ -27,6 +27,10 @@ def show_config():
         msg = content
     typer.echo(msg)
 
+@app.command()
+def uninstall():
+    print_msg_typer(*(cfg_setter.delete_temp_files()))
+
 def print_msg_typer(success, msg):
     if not success:
         typer.echo(f'ERROR: {msg}')

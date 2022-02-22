@@ -47,3 +47,53 @@ def reset_config():
     with open(assetConfigFileName, 'w') as configFile:
         config.write(configFile)
     return True, 'Config file was reset'
+
+def delete_temp_files():
+    msg = 'Temporary files were deleted.\n'
+    from DataManager.tempDir import threadDir
+    from DataManager import tempDir
+    dirs = [
+        
+    ]
+    files = [
+        assetConfigFileName,
+    ]
+
+    tempDirPath = os.path.dirname(inspect.getfile(tempDir))
+    threadDirPath = os.path.dirname(inspect.getfile(threadDir))
+    files.extend(_get_db_files(tempDirPath))
+    files.extend(_get_db_files(threadDirPath))
+
+    for dir in dirs:
+        if os.path.exists(dir):
+            msg += _del_all_files_in_dir(dir)
+
+    for file in files:
+        if os.path.exists(file):
+            msg += _del_file(file)
+    msg += '\n'
+
+    return True, msg
+    
+def _get_db_files(dirPath):
+    files = []
+    for file in os.listdir(dirPath):
+        if file.endswith(".db"):
+            files.append(os.path.join(dirPath, file))
+    return files
+
+def _del_all_files_in_dir(path):
+    msg = ''
+    msg += f'Deleted all files in {dir}\n'
+    for f in os.listdir(path):
+        if os.path.isfile(f):
+            os.remove(os.path.join(path, f))
+            msg += f'Deleted {f}\n'
+    msg += '\n'
+    return msg
+
+def _del_file(path):
+    msg = ''
+    os.remove(path)
+    msg += f'Deleted {path}\n'
+    return msg
