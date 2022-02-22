@@ -31,6 +31,7 @@ install_requires = [
     'alpaca-trade-api',
     'pandas_market_calendars',
     'lxml',
+    'typer',
 ]
 
 if __name__ == '__main__':
