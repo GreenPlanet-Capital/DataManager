@@ -17,6 +17,7 @@ setup_args = dict(
     url='https://github.com/GreenPlanet-Capital/DataManager',
     download_url='https://github.com/GreenPlanet-Capital/DataManager',
     include_package_data=True,
+    python_requires='>3.8.1',
     entry_points={
         'console_scripts': ['datamgr=DataManager.shell:main']
     },
