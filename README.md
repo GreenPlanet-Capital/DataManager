@@ -18,17 +18,17 @@ foo@bar:~$ datamgr set api-keys Alpaca AlpacaKey <public-key-here> AlpacaSecret 
 ```python
 from DataManager.datamgr import data_manager
 
-start_timestamp = '2021-06-01'
-end_timestamp = '2021-07-01'
+start_timestamp = '2021-06-01 00:00:00'
+end_timestamp = '2021-07-01 00:00:00'
 exchangeName = 'NYSE'
 limit = 10
 update_before = True
 
 this_manager = data_manager.DataManager(
-    limit=limit
-    update_before=update_before
+    limit=limit,
+    update_before=update_before,
     exchangeName=exchangeName,
-    isDelisted=False
+    isDelisted=False,
 )
 
 dict_of_dfs = this_manager.get_stock_data(

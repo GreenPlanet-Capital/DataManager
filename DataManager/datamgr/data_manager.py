@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 import os
-from typing import Iterable
+from typing import Iterable, List
 import warnings
 import numpy as np
 import pandas as pd
@@ -88,10 +88,10 @@ class DataManager:
                 'DateOutOfRange: start timestamp cannot be later than end timestamp')
 
         thisExchange = mcal.get_calendar(self._exchange_name)
-        date_range = thisExchange.valid_days(TimeHandler.get_alpaca_string_from_string(start_timestamp),
+        valid_dates_for_ex = thisExchange.valid_days(TimeHandler.get_alpaca_string_from_string(start_timestamp),
                                              TimeHandler.get_alpaca_string_from_string(end_timestamp))
         new_start, new_end = TimeHandler.get_string_from_timestamp(
-            date_range[0]), TimeHandler.get_string_from_timestamp(date_range[-1])
+            valid_dates_for_ex[0]), TimeHandler.get_string_from_timestamp(valid_dates_for_ex[-1])
         if new_start != start_timestamp:
             print(
                 f'NOT A TRADING DAY: Start timestamp has changed from: {start_timestamp} to {new_start}')
@@ -99,12 +99,12 @@ class DataManager:
             print(
                 f'NOT A TRADING DAY: End timestamp has changed from: {end_timestamp} to {new_end}')
 
-        return new_start, new_end, date_range
+        return new_start, new_end, valid_dates_for_ex
 
-    def get_stock_data(self, start_timestamp, end_timestamp, api='Alpaca', threading=True):
+    def get_stock_data(self, start_timestamp, end_timestamp, api='Alpaca', fill_data:int=3, threading=True):
 
         print('Validating Dates...')
-        start_timestamp, end_timestamp, _ = self.validate_timestamps(
+        start_timestamp, end_timestamp, valid_dates_for_ex = self.validate_timestamps(
             start_timestamp, end_timestamp)
         print('Finished validating date\n')
 
@@ -129,6 +129,8 @@ class DataManager:
         list_tuples, partial_list_symbols = getattr(self._extractor, f'getMultipleListHistorical{api}')(
             self._required_symbols_data,
             self._required_dates, type_data, self._exchange_name)
+        # TODO Prune list_tuples
+        list_tuples = self.fill_list_tuples(list_tuples, fill_data, valid_dates_for_ex)
         api_end = timeit.default_timer()
         print('Finished getting data from API!\n')
 
@@ -140,6 +142,60 @@ class DataManager:
         self.list_of_symbols = list(
             set(self._basket_of_symbols).difference(set(partial_list_symbols)))
         return self._daily_stocks.get_daily_stock_data(self.list_of_symbols, start_timestamp, end_timestamp)
+
+    def fill_list_tuples(self, list_tuples, fill_val, valid_dates):
+        n_valid_dates = len(valid_dates)
+        min_len_req =  (n_valid_dates - fill_val)
+        to_fix_tuples = []
+        final_list_tuples = []
+        for tick, df in list_tuples:
+            len_df = len(df)
+            if len_df < min_len_req:
+                continue # reject this tuple
+            elif len_df < n_valid_dates:
+                to_fix_tuples.append( (tick, df) )
+            else:
+                final_list_tuples.append( (tick, df) )
+
+        valid_dates = set([TimeHandler.get_string_from_timestamp(date) for date in valid_dates])
+        for tick, df in to_fix_tuples:
+            this_df_dates = set([TimeHandler.get_string_from_timestamp(date) for date in df.index])
+            missing_dates = valid_dates.difference(this_df_dates)
+            missing_dates = list(missing_dates)
+            missing_dates.sort()
+            self.fill_missing_dates(df, missing_dates)
+            final_list_tuples.append( (tick, df) )
+            print()
+
+        print()
+        return final_list_tuples   
+
+    def fill_missing_dates(self, df: pd.DataFrame, missing_dates: List[str]):
+        df['timestamp_strings'] = df.index
+        df['timestamp_strings'] = df['timestamp_strings'].apply(TimeHandler.get_string_from_timestamp)
+        timestamp_series = df['timestamp_strings']
+        fallback_timestamp_strings = []
+        for missing_date in missing_dates:
+            fallback_vals = timestamp_series[timestamp_series<missing_date]
+            assert len(fallback_vals)>0, f'LENGTH ERROR: {missing_date=} does not have a fallback value in the dataframe'
+            if fallback_vals.empty:
+                fallback_timestamp_strings.append('')
+            else:
+                fallback_timestamp_strings.append(
+                    fallback_vals[-1]
+                )
+        
+        for to_insert_timestamp_str, fallback_timestamp_str in zip(missing_dates, fallback_timestamp_strings):
+            if not fallback_timestamp_str:
+                continue
+            df_temp = df.loc[df['timestamp_strings']==fallback_timestamp_str].copy()
+            t1 = pd.Timestamp(to_insert_timestamp_str).tz_localize('UTC')
+            df_temp.index = [t1]
+            df_temp.index.name = 'timestamp'
+            df_temp.drop('timestamp_strings', axis=1, inplace=True)
+            df = pd.concat([df, df_temp], axis=0)
+        df.drop('timestamp_strings', axis=1, inplace=True)
+        df.sort_index(inplace=True)
 
     def get_one_stock_data(self, stock_symbol, start_timestamp, end_timestamp):
         statusTimestamp, req_start, req_end = self._main_stocks.table_manager.check_data_availability(stock_symbol,
