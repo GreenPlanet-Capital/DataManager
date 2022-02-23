@@ -52,6 +52,7 @@ def delete_temp_files():
     msg = 'Temporary files were deleted.\n'
     from DataManager.tempDir import threadDir
     from DataManager import tempDir
+    import DataManager
     dirs = [
         
     ]
@@ -61,8 +62,10 @@ def delete_temp_files():
 
     tempDirPath = os.path.dirname(inspect.getfile(tempDir))
     threadDirPath = os.path.dirname(inspect.getfile(threadDir))
-    files.extend(_get_db_files(tempDirPath))
-    files.extend(_get_db_files(threadDirPath))
+    rootDirPath = os.path.dirname(inspect.getfile(DataManager))
+    files.extend(_get_files_with_ext(tempDirPath, ".db"))
+    files.extend(_get_files_with_ext(threadDirPath, ".db"))
+    files.extend(_get_files_with_ext(rootDirPath, ".DS_Store"))
 
     for dir in dirs:
         if os.path.exists(dir):
@@ -75,10 +78,10 @@ def delete_temp_files():
 
     return True, msg
     
-def _get_db_files(dirPath):
+def _get_files_with_ext(dirPath, extension):
     files = []
     for file in os.listdir(dirPath):
-        if file.endswith(".db"):
+        if file.endswith(extension):
             files.append(os.path.join(dirPath, file))
     return files
 
