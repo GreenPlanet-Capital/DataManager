@@ -49,6 +49,9 @@ class DataExtractor:
         self.AsyncObj.reset_async_list()
         return to_return
 
+    def callCalendarAlpaca(self, dateFrom, dateTo):
+        return self.AlpacaAPI.get_calendar(dateFrom, dateTo)
+
     """
         Extracts data from Alpaca asynchronously. Retries if some calls to Alpaca fail. 
 
@@ -65,19 +68,24 @@ class DataExtractor:
             - `maxRetries`: number of times to retry Alpaca calls when encountering exceptions 
     """
     def getMultipleListHistoricalAlpaca(self, list_symbols, list_dates, timeframe: TimeFrame, exchange_name,
-                                        adjustment='all', maxRetries=5):
+                                        adjustment='all', maxRetries=5):                               
         this_exchange = mcal.get_calendar(exchange_name)
         min_date_timeframe = False
+        max_date_timeframe = False
         for i, datePair in enumerate(list_dates):
+            if not max_date_timeframe:
+                max_date_timeframe = datePair[1]
             if not min_date_timeframe:
                 min_date_timeframe = datePair[0]
+            max_date_timeframe = max(max_date_timeframe, datePair[1])
             min_date_timeframe = min(min_date_timeframe, datePair[0])
             valid_days = this_exchange.valid_days(datePair[0], datePair[1])
             list_dates[i] = (TimeHandler.get_alpaca_string_from_timestamp(valid_days[0]), 
                             TimeHandler.get_alpaca_string_from_timestamp(valid_days[-1]))
-        date_difference = datetime.now() - TimeHandler.get_datetime_from_alpaca_string(min_date_timeframe)
-        if date_difference.days > (365*5):
-            raise Exception('Alpaca only has data on past 5 years')
+        
+        totalLength = len(self.callCalendarAlpaca(min_date_timeframe, max_date_timeframe))
+        if totalLength > 1000:
+            raise Exception('Alpaca only has data on past 1000 trading days')
 
         def fix_output(list_tuples: Iterable[tuple]) -> dict:
             dict_stocks_df = {}
