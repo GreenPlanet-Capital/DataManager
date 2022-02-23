@@ -125,12 +125,13 @@ class DataManager:
         api_start = timeit.default_timer()
 
         type_data = self.freq_data
-
+        
         list_tuples, partial_list_symbols = getattr(self._extractor, f'getMultipleListHistorical{api}')(
             self._required_symbols_data,
             self._required_dates, type_data, self._exchange_name)
-        # TODO Prune list_tuples
-        list_tuples = self.fill_list_tuples(list_tuples, fill_data, valid_dates_for_ex)
+        
+        list_tuples, ext_partial_symbols = self.fill_list_tuples(list_tuples, fill_data, valid_dates_for_ex)
+        partial_list_symbols.extend(ext_partial_symbols)
         api_end = timeit.default_timer()
         print('Finished getting data from API!\n')
 
@@ -148,10 +149,11 @@ class DataManager:
         min_len_req =  (n_valid_dates - fill_val)
         to_fix_tuples = []
         final_list_tuples = []
+        partial_symbols = []
         for tick, df in list_tuples:
             len_df = len(df)
             if len_df < min_len_req:
-                continue # reject this tuple
+                partial_symbols.append(tick) # reject this tuple
             elif len_df < n_valid_dates:
                 to_fix_tuples.append( (tick, df) )
             else:
@@ -168,7 +170,7 @@ class DataManager:
             print()
 
         print()
-        return final_list_tuples   
+        return final_list_tuples, partial_symbols   
 
     def fill_missing_dates(self, df: pd.DataFrame, missing_dates: List[str]):
         df['timestamp_strings'] = df.index
