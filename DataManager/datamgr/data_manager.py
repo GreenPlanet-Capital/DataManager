@@ -104,7 +104,7 @@ class DataManager:
     def get_stock_data(self, start_timestamp, end_timestamp, api='Alpaca', fill_data:int=3, threading=True):
 
         print('Validating Dates...')
-        start_timestamp, end_timestamp, valid_dates_for_ex = self.validate_timestamps(
+        start_timestamp, end_timestamp, _ = self.validate_timestamps(
             start_timestamp, end_timestamp)
         print('Finished validating date\n')
 
@@ -130,7 +130,7 @@ class DataManager:
             self._required_symbols_data,
             self._required_dates, type_data, self._exchange_name)
         
-        list_tuples, ext_partial_symbols = self.fill_list_tuples(list_tuples, fill_data, valid_dates_for_ex)
+        list_tuples, ext_partial_symbols = self.fill_list_tuples(list_tuples, fill_data, self._required_dates)
         partial_list_symbols.extend(ext_partial_symbols)
         api_end = timeit.default_timer()
         print('Finished getting data from API!\n')
@@ -144,33 +144,30 @@ class DataManager:
             set(self._basket_of_symbols).difference(set(partial_list_symbols)))
         return self._daily_stocks.get_daily_stock_data(self.list_of_symbols, start_timestamp, end_timestamp)
 
-    def fill_list_tuples(self, list_tuples, fill_val, valid_dates):
-        n_valid_dates = len(valid_dates)
-        min_len_req =  (n_valid_dates - fill_val)
-        to_fix_tuples = []
+    def fill_list_tuples(self, list_tuples, fill_val, tuples_of_req_dates):
         final_list_tuples = []
         partial_symbols = []
-        for tick, df in list_tuples:
+
+        for i, tick, df in enumerate(list_tuples):
+            thisExchange = mcal.get_calendar(self._exchange_name)
+            valid_dates_for_ex = thisExchange.valid_days(tuples_of_req_dates[i][0], tuples_of_req_dates[i][1])
+            n_valid_dates = len(valid_dates_for_ex)
+            min_len_req =  (n_valid_dates - fill_val)
             len_df = len(df)
-            if len_df < min_len_req:
-                partial_symbols.append(tick) # reject this tuple
-            elif len_df < n_valid_dates:
-                to_fix_tuples.append( (tick, df) )
+            if len_df < min_len_req: # reject this tuple
+                partial_symbols.append(tick) 
+            elif len_df < n_valid_dates: # to fix the df
+                this_df_dates = set([TimeHandler.get_string_from_timestamp(date) for date in df.index])
+                valid_dates_for_ex = set([TimeHandler.get_string_from_timestamp(date) for date in valid_dates_for_ex])
+                missing_dates = valid_dates_for_ex.difference(this_df_dates)
+                missing_dates = list(missing_dates)
+                missing_dates.sort()
+                self.fill_missing_dates(df, missing_dates)
+                final_list_tuples.append( (tick, df) )
             else:
                 final_list_tuples.append( (tick, df) )
 
-        valid_dates = set([TimeHandler.get_string_from_timestamp(date) for date in valid_dates])
-        for tick, df in to_fix_tuples:
-            this_df_dates = set([TimeHandler.get_string_from_timestamp(date) for date in df.index])
-            missing_dates = valid_dates.difference(this_df_dates)
-            missing_dates = list(missing_dates)
-            missing_dates.sort()
-            self.fill_missing_dates(df, missing_dates)
-            final_list_tuples.append( (tick, df) )
-            print()
-
-        print()
-        return final_list_tuples, partial_symbols   
+        return final_list_tuples, partial_symbols
 
     def fill_missing_dates(self, df: pd.DataFrame, missing_dates: List[str]):
         df['timestamp_strings'] = df.index
