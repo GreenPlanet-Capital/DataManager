@@ -6,9 +6,15 @@ foo@bar:~$ python3 -m venv env
 foo@bar:~$ source env/bin/activate
 ~~~
 ### Install DataManager
+- If you are using it as an app
 ~~~shell
 foo@bar:~$ pip3 install git+https://github.com/GreenPlanet-Capital/DataManager@install_b
 ~~~
+- If you are developing DataManager
+~~~shell
+foo@bar:~$ git clone https://github.com/GreenPlanet-Capital/DataManager@install_b
+~~~
+
 ### Setup your API Keys
 ~~~shell
 foo@bar:~$ datamgr set api-keys Alpaca AlpacaKey <public-key-here> AlpacaSecret <private-key-here>
