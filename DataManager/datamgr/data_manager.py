@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 import os
-from typing import Iterable, List
+from typing import Dict, Iterable, List
 import warnings
 import numpy as np
 import pandas as pd
@@ -147,10 +147,15 @@ class DataManager:
     def fill_list_tuples(self, list_tuples, fill_val, tuples_of_req_dates):
         final_list_tuples = []
         partial_symbols = []
+        thisExchange = mcal.get_calendar(self._exchange_name)
+        needed_timeframes = set(tuples_of_req_dates)
+        timeframe_to_valid_dates: Dict = dict()
+        for timeframe in needed_timeframes:
+            valid_dates_for_ex = thisExchange.valid_days(timeframe[0], timeframe[1])
+            timeframe_to_valid_dates[timeframe] = valid_dates_for_ex
 
-        for i, tick, df in enumerate(list_tuples):
-            thisExchange = mcal.get_calendar(self._exchange_name)
-            valid_dates_for_ex = thisExchange.valid_days(tuples_of_req_dates[i][0], tuples_of_req_dates[i][1])
+        for i, (tick, df) in enumerate(list_tuples):
+            valid_dates_for_ex = timeframe_to_valid_dates[tuples_of_req_dates[i]]
             n_valid_dates = len(valid_dates_for_ex)
             min_len_req =  (n_valid_dates - fill_val)
             len_df = len(df)
