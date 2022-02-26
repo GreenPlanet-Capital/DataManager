@@ -33,7 +33,8 @@ install_requires = [
     'pandas_market_calendars',
     'lxml',
     'typer',
-    'pydrive'
+    'pydrive',
+    'zdrive'
 ]
 
 if __name__ == '__main__':

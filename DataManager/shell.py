@@ -31,6 +31,12 @@ def show_config():
 def uninstall():
     print_msg_typer(*(cfg_setter.delete_temp_files()))
 
+@app.command()
+def gdrive_client_secrets():
+    typer.echo('Follow https://stackoverflow.com/questions/28184419/pydrive-invalid-client-secrets-file to get your Google Drive credentials\n')
+    contents = str(input('Paste the contents of your client_sercrets.json here: '))
+    print_msg_typer(*(cfg_setter.gdrive_client_secrets(contents)))
+
 def print_msg_typer(success, msg):
     if not success:
         typer.echo(f'ERROR: {msg}')

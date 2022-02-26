@@ -2,6 +2,7 @@ import configparser
 import os
 import inspect
 from DataManager import config_files
+from DataManager import gdrive_service
 
 assetConfigFileName = os.path.join(\
         os.path.dirname(inspect.getfile(config_files)),
@@ -9,6 +10,14 @@ assetConfigFileName = os.path.join(\
 if not os.path.exists(f'{assetConfigFileName}'):
     with open(f'{assetConfigFileName}', 'w'):
         pass
+
+def gdrive_client_secrets(secrets):
+    clientSecretsFilePath = os.path.join(\
+        os.path.dirname(inspect.getfile(gdrive_service)),
+        'client_secrets.json')
+    with open(clientSecretsFilePath, 'w') as f:
+        f.write(secrets)
+    return True, f'Successfully written\n\n[client_secrets.json]\n{secrets}'
 
 def _write_config_file(config):
     with open(assetConfigFileName, 'w+') as configFile:

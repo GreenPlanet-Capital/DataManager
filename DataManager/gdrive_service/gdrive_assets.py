@@ -2,7 +2,7 @@ import inspect
 import os
 from pydrive.drive import GoogleDrive
 from pydrive.auth import GoogleAuth
-import shutil
+from zdrive import Downloader
 
 from DataManager import tempDir
 
@@ -11,7 +11,7 @@ class GDriveManage:
     def __init__(self):
         self.gauth = GoogleAuth()
         self.drive = GoogleDrive(self.gauth)
-        self.authenticate()
+        # self.authenticate()
 
     def authenticate(self):
         self.gauth.LoadCredentialsFile("mycreds.txt")
@@ -41,16 +41,16 @@ class GDriveManage:
         file_create.SetContentFile(abs_path_file)  # The contents of the file
         file_create.Upload()
 
-    def downloadFolder(self, destinationFolder, fileId='12oipyI87bJYLMayYDl5afXzb9PFdpaQD'):
-        file_list = self.drive.ListFile({'q': "'{}' in parents and trashed=false".format(fileId)}).GetList()
-        for i, file1 in enumerate(sorted(file_list, key=lambda x: x['title']), start=1):
-            print('Downloading {} from GDrive ({}/{})'.format(file1['title'], i, len(file_list)))
-            file1.GetContentFile(file1['title'])
-            shutil.move(file1['title'], os.path.join(destinationFolder, file1['title']))
+    def downloadFolder(self, destinationFolder, folderID='12oipyI87bJYLMayYDl5afXzb9PFdpaQD'):
+        d = Downloader()
+        d.downloadFolder(folderID, destinationFolder=destinationFolder)
 
 
-# assetConfigFileName = os.path.dirname(inspect.getfile(tempDir))
-#
-# p = GDriveManage()
-# p.downloadFolder(assetConfigFileName)
-# p.upload_file_to_specific_folder('lmaoded.txt', 'Classroom')
+tempDirPath = os.path.dirname(inspect.getfile(tempDir))
+assetDbFilePath = os.path.join(tempDirPath, 'AssetDB.db')
+stockDataDbFilePath = os.path.join(tempDirPath, 'Stock_DataDB.db')
+
+p = GDriveManage()
+p.downloadFolder(tempDirPath)
+# p.upload_file_to_specific_folder(assetDbFilePath, 'DataManager_Data')
+# p.upload_file_to_specific_folder(stockDataDbFilePath, 'DataManager_Data')
