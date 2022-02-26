@@ -34,7 +34,7 @@ install_requires = [
     'lxml',
     'typer',
     'pydrive',
-    'zdrive'
+    'gdown'
 ]
 
 if __name__ == '__main__':
