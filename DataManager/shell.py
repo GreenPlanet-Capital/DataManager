@@ -37,5 +37,13 @@ def print_msg_typer(success, msg):
     else:
         typer.echo(f'SUCCESS: {msg}')
 
+@app.command()
+def upload_files():
+    pass
+
+@app.command()
+def download_files():
+    pass
+
 def main():
     app()
