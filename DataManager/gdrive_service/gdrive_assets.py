@@ -86,7 +86,7 @@ class GDriveManage:
 tempDirPath = os.path.dirname(inspect.getfile(tempDir))
 assetDbFilePath = os.path.join(tempDirPath, 'AssetDB.db')
 stockDataDbFilePath = os.path.join(tempDirPath, 'Stock_DataDB.db')
-data_file_id = '<?>-RT-hGxU'
+data_file_id = '1Cob1f-iq_d5Ytfc6PhdDJFoZrk3gNVzO'
 datamgr_folder = None
 
 def upload_files():
