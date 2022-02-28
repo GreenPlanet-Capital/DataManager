@@ -57,6 +57,9 @@ def download_files():
     g_service.download_files()
     typer.echo('Download completed...\n')
 
+@app.command()
+def init_remote():
+    g_service.init_remote()
 
 def main():
     app()

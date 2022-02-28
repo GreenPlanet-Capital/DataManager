@@ -1,7 +1,7 @@
 import configparser
 import os
 import inspect
-from DataManager import config_files, tempDir
+from DataManager import config_files
 
 assetConfigFileName = os.path.join(\
         os.path.dirname(inspect.getfile(config_files)),
@@ -12,7 +12,7 @@ if not os.path.exists(f'{assetConfigFileName}'):
 
 def gdrive_client_secrets(secrets):
     clientSecretsFilePath = os.path.join(\
-        os.path.dirname(inspect.getfile(tempDir)),
+        os.path.dirname(inspect.getfile(config_files)),
         'client_secrets.json')
     with open(clientSecretsFilePath, 'w') as f:
         f.write(secrets)

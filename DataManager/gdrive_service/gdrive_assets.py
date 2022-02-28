@@ -3,7 +3,7 @@ import os
 
 import gdown
 from pydrive.drive import GoogleDrive
-from DataManager import tempDir
+from DataManager import config_files, tempDir
 from zipfile import ZipFile
 from os.path import basename
 from pydrive.auth import GoogleAuth
@@ -14,10 +14,12 @@ class GDriveManage:
         self.gauth = GoogleAuth()
         self.drive = GoogleDrive(self.gauth)
         self.temp_dir = os.path.dirname(inspect.getfile(tempDir))
-        GoogleAuth.DEFAULT_SETTINGS['client_config_file'] = os.path.join(self.temp_dir, 'client_secrets.json')
+        self.config_files_dir = os.path.dirname(inspect.getfile(config_files))
+        GoogleAuth.DEFAULT_SETTINGS['client_config_file'] = os.path.join(self.config_files_dir, 'client_secrets.json')
 
     def authenticate(self):
-        self.gauth.LoadCredentialsFile(os.path.join(self.temp_dir, 'mycreds.txt'))
+        if os.path.exists(os.path.join(self.temp_dir, 'mycreds.txt')):
+            self.gauth.LoadCredentialsFile(os.path.join(self.temp_dir, 'mycreds.txt'))
         if self.gauth.credentials is None:
             # Authenticate if they're not there
             self.gauth.LocalWebserverAuth()
@@ -84,13 +86,17 @@ class GDriveManage:
 tempDirPath = os.path.dirname(inspect.getfile(tempDir))
 assetDbFilePath = os.path.join(tempDirPath, 'AssetDB.db')
 stockDataDbFilePath = os.path.join(tempDirPath, 'Stock_DataDB.db')
+data_file_id = '<?>-RT-hGxU'
+datamgr_folder = None
 
 def upload_files():
     g_manager = GDriveManage()
     g_manager.authenticate()
 
     # Zip db files & clear remote dir contents
-    datamgr_folder = g_manager.get_folder_object('DataManager_Data')
+    global datamgr_folder
+    if datamgr_folder is None:
+        datamgr_folder = g_manager.get_folder_object('DataManager_Data')
     g_manager.make_zip_file([assetDbFilePath, stockDataDbFilePath], os.path.join(tempDirPath, 'all.zip'))
     g_manager.clear_contents(datamgr_folder, {'data_info.txt'})
 
@@ -98,9 +104,21 @@ def upload_files():
     id_all_zip = g_manager.upload_file_to_specific_folder(os.path.join(tempDirPath, 'all.zip'), datamgr_folder)
     g_manager.edit_file(datamgr_folder, 'data_info.txt', id_all_zip)
 
+def init_remote():
+    g_manager = GDriveManage()
+    g_manager.authenticate()
+    # Zip db files & clear remote dir contents
+    global datamgr_folder
+    if datamgr_folder is None:
+        datamgr_folder = g_manager.get_folder_object('DataManager_Data')
+
+    # Get id of uploaded zip file
+    open(os.path.join(tempDirPath, 'data_info.txt'), 'a').close()
+    _ = g_manager.upload_file_to_specific_folder(os.path.join(tempDirPath, 'data_info.txt'), datamgr_folder)
+
 def download_files():
     # Hard-code id below to data_info.txt
-    GDriveManage.download_folder('1NGrpXTtZo3sp5f4CxRsKMl90-RT-hGxU', os.path.join(tempDirPath, 'data_info.txt'))
+    GDriveManage.download_folder(data_file_id, os.path.join(tempDirPath, 'data_info.txt'))
     data_ = open(os.path.join(tempDirPath, 'data_info.txt'), 'r')
 
     # Download zip file with db files
