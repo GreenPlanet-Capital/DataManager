@@ -33,8 +33,9 @@ install_requires = [
     'pandas_market_calendars',
     'lxml',
     'typer',
+    'httplib2<0.16.0',
     'pydrive',
-    'gdown'
+    'gdown',
 ]
 
 if __name__ == '__main__':
