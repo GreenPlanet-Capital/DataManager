@@ -16,7 +16,7 @@ def gdrive_client_secrets(secrets):
         'client_secrets.json')
     with open(clientSecretsFilePath, 'w') as f:
         f.write(secrets)
-    return True, f'Successfully written\n\n[client_secrets.json]\n{secrets}'
+    return True, f'\nSuccessfully written\n\n[client_secrets.json]\n{secrets}'
 
 def _write_config_file(config):
     with open(assetConfigFileName, 'w+') as configFile:
