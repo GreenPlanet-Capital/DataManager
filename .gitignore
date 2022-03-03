@@ -145,3 +145,4 @@ dmypy.json
 
 #Miscellaneous
 env
+!setup.cfg
