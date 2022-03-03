@@ -6,18 +6,22 @@ app = typer.Typer()
 set_app = typer.Typer()
 app.add_typer(set_app, name="set")
 
+
 @set_app.command()
 def api_keys(section: str, public_key_var_name: str, public_key: str, private_key_var_name: str, private_key: str):
     success, msg = cfg_setter.set_keys(section,
-    public_key_var_name,
-    public_key,
-    private_key_var_name,
-    private_key)
+                                       public_key_var_name,
+                                       public_key,
+                                       private_key_var_name,
+                                       private_key
+                                       )
     print_msg_typer(success, msg)
+
 
 @app.command()
 def reset():
     print_msg_typer(*(cfg_setter.reset_config()))
+
 
 @app.command()
 def show_config():
@@ -26,11 +30,14 @@ def show_config():
         msg = 'EMPTY'
     else:
         msg = content
+
     typer.echo(msg)
+
 
 @app.command()
 def uninstall():
     print_msg_typer(*(cfg_setter.delete_temp_files()))
+
 
 @app.command()
 def gdrive_client_secrets():
@@ -39,11 +46,13 @@ def gdrive_client_secrets():
     contents = str(input('Paste the contents of your client_sercrets.json here: '))
     print_msg_typer(*(cfg_setter.gdrive_client_secrets(contents)))
 
+
 def print_msg_typer(success, msg):
     if not success:
         typer.echo(f'ERROR: {msg}')
     else:
         typer.echo(f'SUCCESS: {msg}')
+
 
 @app.command()
 def upload_files():
@@ -51,15 +60,18 @@ def upload_files():
     g_service.upload_files()
     typer.echo('Upload completed...\n')
 
+
 @app.command()
 def download_files():
     typer.echo('Downloading db files...')
     g_service.download_files()
     typer.echo('Download completed...\n')
 
+
 @app.command()
 def init_remote():
     g_service.init_remote()
+
 
 def main():
     app()

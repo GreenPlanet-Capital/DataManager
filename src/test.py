@@ -1,17 +1,17 @@
 """
-2018-2022 -> not all stocks have the same trading days eventhough 
+2018-2022 -> not all stocks have the same trading days eventhough
 they're part of the same exchange
 
 using mcal, get all trading days between two dates
-after we get data, ensure 
+after we get data, ensure
 """
 
 from datetime import datetime
 from DataManager.datamgr import data_manager
 from DataManager.utils.timehandler import TimeHandler
 
-start_timestamp = datetime(2020,1,1)
-end_timestamp = datetime(2022,2,22)
+start_timestamp = datetime(2020, 1, 1)
+end_timestamp = datetime(2022, 2, 22)
 exchangeName = 'NYSE'
 limit = 15
 update_before = False

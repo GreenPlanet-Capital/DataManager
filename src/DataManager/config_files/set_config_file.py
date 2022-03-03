@@ -1,6 +1,7 @@
 import configparser
 import os
 import inspect
+from typing import List
 from DataManager import config_files
 
 assetConfigFileName = os.path.join(\
@@ -61,7 +62,7 @@ def delete_temp_files():
     from DataManager.tempDir import threadDir
     from DataManager import tempDir
     import DataManager
-    dirs = [
+    dirs: List[str] = [
         
     ]
     files = [

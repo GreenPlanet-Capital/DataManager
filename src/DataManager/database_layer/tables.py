@@ -1,5 +1,6 @@
 from datetime import timedelta
 import os
+from typing import List
 from DataManager.database_layer.database import DatabaseManager
 from DataManager.utils.conversions import _Conversions
 from DataManager.utils.timehandler import TimeHandler
@@ -20,7 +21,7 @@ class TableManager:
     def create_asset_table(self, table_name, columns):
         self.db.create_table(f'{table_name}', columns)
 
-    def drop_all_tables(self, exclude: list=[]):
+    def drop_all_tables(self, exclude: List[str]=[]):
         tables = self.list_tables()
         for table in tables:
             if table not in exclude:

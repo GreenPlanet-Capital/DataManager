@@ -1,15 +1,17 @@
 import copy
 from datetime import datetime
 import os
-from typing import Iterable
+from typing import Dict, Iterable, List, Tuple
 from alpaca_trade_api.rest import REST, TimeFrame
 import asyncio
 import time
+import pandas as pd
 import pandas_market_calendars as mcal
 from DataManager.utils.timehandler import TimeHandler
 from DataManager.assetmgr.asset_manager import Assets
 from DataManager.datamgr.historic_async import HistoricalAsync
-from DataManager.core import *
+from DataManager import core
+import configparser
 
 
 class DataExtractor:
@@ -26,8 +28,8 @@ class DataExtractor:
         """
     def __init__(self) -> None:
         self.configParse = configparser.ConfigParser()
-        self.configParse.read(os.path.join(DATAMGR_ABS_PATH, os.path.join('config_files', 'assetConfig.cfg')))
-        setEnv()
+        self.configParse.read(os.path.join(core.DATAMGR_ABS_PATH, os.path.join('config_files', 'assetConfig.cfg')))
+        core.setEnv()
         self.AlpacaAPI = REST(raw_data=True)
         self.AsyncObj = HistoricalAsync()
 
@@ -53,10 +55,10 @@ class DataExtractor:
         return self.AlpacaAPI.get_calendar(dateFrom, dateTo)
 
     """
-        Extracts data from Alpaca asynchronously. Retries if some calls to Alpaca fail. 
+        Extracts data from Alpaca asynchronously. Retries if some calls to Alpaca fail.
 
         Example:
-        complete_data, partial_data = getMultipleListHistoricalAlpaca(list_symbols, list_dates, TimeFrame.day, 
+        complete_data, partial_data = getMultipleListHistoricalAlpaca(list_symbols, list_dates, TimeFrame.day,
                                         exchange_name, adjustment='all', maxRetries=3)
 
         Inputs:
@@ -65,10 +67,10 @@ class DataExtractor:
             - `timeframe`: timeframe to get data in (days, hours, months)
             - `adjustment`: adjustment for stock data
             - `exchange_name`: exchange to check against for output validation
-            - `maxRetries`: number of times to retry Alpaca calls when encountering exceptions 
+            - `maxRetries`: number of times to retry Alpaca calls when encountering exceptions
     """
     def getMultipleListHistoricalAlpaca(self, list_symbols, list_dates, timeframe: TimeFrame, exchange_name,
-                                        adjustment='all', maxRetries=5):                               
+                                        adjustment='all', maxRetries=5):
         this_exchange = mcal.get_calendar(exchange_name)
         min_date_timeframe = False
         max_date_timeframe = False
@@ -80,14 +82,15 @@ class DataExtractor:
             max_date_timeframe = max(max_date_timeframe, datePair[1])
             min_date_timeframe = min(min_date_timeframe, datePair[0])
             valid_days = this_exchange.valid_days(datePair[0], datePair[1])
-            list_dates[i] = (TimeHandler.get_alpaca_string_from_timestamp(valid_days[0]), 
-                            TimeHandler.get_alpaca_string_from_timestamp(valid_days[-1]))
-        
+            list_dates[i] = (TimeHandler.get_alpaca_string_from_timestamp(valid_days[0]),
+                             TimeHandler.get_alpaca_string_from_timestamp(valid_days[-1])
+                             )
+
         totalLength = len(self.callCalendarAlpaca(min_date_timeframe, max_date_timeframe))
         if totalLength > 1000:
             raise Exception('Alpaca only has data on past 1000 trading days')
 
-        def fix_output(list_tuples: Iterable[tuple]) -> dict:
+        def fix_output(list_tuples: Iterable[Tuple[str, pd.DataFrame]]) -> Dict[str, pd.DataFrame]:
             dict_stocks_df = {}
             for individual_tup in list_tuples:
                 df_this = individual_tup[1]
@@ -99,13 +102,14 @@ class DataExtractor:
             return dict_stocks_df
 
         currentRetries = 0
-        valid_tuples, empty_symbols, partial_symbols = [], set(), set()
+        valid_tuples: List[Tuple[str, pd.DataFrame]] = []
+        empty_symbols, partial_symbols = set(), set()
         this_list_symbols = list_symbols
         this_list_dates = list_dates
 
         while currentRetries <= maxRetries \
-            and len(valid_tuples) != len(list_symbols) \
-            and len(this_list_symbols)!=0:
+                and len(valid_tuples) != len(list_symbols) \
+                and len(this_list_symbols) != 0:
             current_output = self.callHistoricalMultipleAlpaca(this_list_symbols,
                                                                this_list_dates, timeframe,
                                                                adjustment)

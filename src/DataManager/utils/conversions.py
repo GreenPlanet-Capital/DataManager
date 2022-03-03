@@ -1,6 +1,9 @@
+from typing import Dict
+
+
 class _Conversions:
     @staticmethod
-    def asset_row_to_dict(columns_dict: dict, row):
+    def asset_row_to_dict(columns_dict: Dict[str, str], row):
         return dict(zip(columns_dict.keys(), row))
 
     @staticmethod

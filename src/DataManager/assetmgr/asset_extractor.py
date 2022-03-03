@@ -1,8 +1,10 @@
 import concurrent.futures
+from typing import Any, Dict, Iterable, List
 from DataManager.assetmgr.nse_list import listNSESymbols
 from iexfinance import refdata
 from alpaca_trade_api.rest import REST
 from DataManager.core import *
+import os
 
 class AssetExtractor:
     def __init__(self):
@@ -20,13 +22,18 @@ class AssetExtractor:
         return self.AlpacaAPI.list_assets()
 
     def getPyNSEAsset(self, stockSymbol):
-        try:
-            to_return = self.NSEApi.info(stockSymbol)
-        except ValueError as e:
-            return ['Symbol not found', stockSymbol]
-        return to_return
+        """
+        Does not work
+        """
+        # try:
+        #     to_return = self.NSEApi.info(stockSymbol)
+        # except ValueError as e:
+        #     return ['Symbol not found', stockSymbol]
+        # return to_return
+        pass
 
     def getAllPyNSEAssets(self, threading=True):
+        listNSEAssets: List[Any] = []
         if threading:
             executor = concurrent.futures.ProcessPoolExecutor(10)
             listNSEAssets = [executor.submit(self.getPyNSEAsset, stockSymbol) for stockSymbol in listNSESymbols]
@@ -34,12 +41,12 @@ class AssetExtractor:
         else:
             listNSEAssets = [self.getPyNSEAsset(stockSymbol) for stockSymbol in listNSESymbols]
 
-        symbols_not_found = []
+        symbols_not_found: List[str] = []
         positions_to_be_removed = set()
 
         def process_Futures_objects():
             for i, futures_object in enumerate(listNSEAssets):
-                result = futures_object.result()
+                result: Any = futures_object.result()
                 if isinstance(result, dict):
                     listNSEAssets[i] = result
                 elif result[0] == 'Symbol not found':

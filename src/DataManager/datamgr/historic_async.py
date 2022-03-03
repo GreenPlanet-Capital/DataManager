@@ -4,7 +4,8 @@ import asyncio
 import sys
 from alpaca_trade_api.rest import TimeFrame, URL
 from alpaca_trade_api.rest_async import gather_with_concurrency, AsyncRest
-from DataManager.core import *
+from DataManager import core
+import os
 
 
 class DataType(str, Enum):
@@ -15,7 +16,7 @@ class DataType(str, Enum):
 
 class HistoricalAsync:
     def __init__(self):
-        setEnv()
+        core.setEnv()
         api_key_id = os.environ.get('APCA_API_KEY_ID')
         api_secret = os.environ.get('APCA_API_SECRET_KEY')
         base_url = os.environ.get('APCA_API_BASE_URL')
@@ -103,7 +104,7 @@ class HistoricalAsync:
             raise Exception('asyncio is not support in your python version')
         msg = f"Getting {data_type} data for {len(symbols)} symbols"
         msg += f", timeframe: {timeframe}" if timeframe else ""
-        msg += f" between dates specified in the list"
+        msg += " between dates specified in the list"
         print(msg)
 
         tasks = []

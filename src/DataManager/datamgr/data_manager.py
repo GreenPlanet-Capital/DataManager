@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import os
-from typing import Dict, Iterable, List
+from pandas import Index, Timestamp
+from typing import Any, Dict, List, Tuple
 import warnings
 import numpy as np
 import pandas as pd
@@ -17,8 +18,8 @@ from DataManager.assetmgr.asset_manager import Assets
 from DataManager.database_layer.database import DatabaseManager
 from DataManager.datamgr.data_extractor import DataExtractor
 
-api_start = 0
-api_end = 0
+api_start = 0.0
+api_end = 0.0
 
 
 class DataManager:
@@ -89,7 +90,8 @@ class DataManager:
 
         thisExchange = mcal.get_calendar(self._exchange_name)
         valid_dates_for_ex = thisExchange.valid_days(TimeHandler.get_alpaca_string_from_string(start_timestamp),
-                                             TimeHandler.get_alpaca_string_from_string(end_timestamp))
+                                                     TimeHandler.get_alpaca_string_from_string(end_timestamp)
+                                                     )
         new_start, new_end = TimeHandler.get_string_from_timestamp(
             valid_dates_for_ex[0]), TimeHandler.get_string_from_timestamp(valid_dates_for_ex[-1])
         if new_start != start_timestamp:
@@ -101,7 +103,7 @@ class DataManager:
 
         return new_start, new_end, valid_dates_for_ex
 
-    def get_stock_data(self, start_timestamp, end_timestamp, api='Alpaca', fill_data:int=3, threading=True):
+    def get_stock_data(self, start_timestamp, end_timestamp, api='Alpaca', fill_data: int = 3, threading=True):
 
         print('Validating Dates...')
         start_timestamp, end_timestamp, _ = self.validate_timestamps(
@@ -125,11 +127,11 @@ class DataManager:
         api_start = timeit.default_timer()
 
         type_data = self.freq_data
-        
+
         list_tuples, partial_list_symbols = getattr(self._extractor, f'getMultipleListHistorical{api}')(
             self._required_symbols_data,
             self._required_dates, type_data, self._exchange_name)
-        
+
         list_tuples, ext_partial_symbols = self.fill_list_tuples(list_tuples, fill_data, self._required_dates)
         partial_list_symbols.extend(ext_partial_symbols)
         api_end = timeit.default_timer()
@@ -149,7 +151,7 @@ class DataManager:
         partial_symbols = []
         thisExchange = mcal.get_calendar(self._exchange_name)
         needed_timeframes = set(tuples_of_req_dates)
-        timeframe_to_valid_dates: Dict = dict()
+        timeframe_to_valid_dates: Dict[str, List[Timestamp]] = dict()
         for timeframe in needed_timeframes:
             valid_dates_for_ex = thisExchange.valid_days(timeframe[0], timeframe[1])
             timeframe_to_valid_dates[timeframe] = valid_dates_for_ex
@@ -157,20 +159,20 @@ class DataManager:
         for i, (tick, df) in enumerate(list_tuples):
             valid_dates_for_ex = timeframe_to_valid_dates[tuples_of_req_dates[i]]
             n_valid_dates = len(valid_dates_for_ex)
-            min_len_req =  (n_valid_dates - fill_val)
+            min_len_req = (n_valid_dates - fill_val)
             len_df = len(df)
-            if len_df < min_len_req: # reject this tuple
-                partial_symbols.append(tick) 
-            elif len_df < n_valid_dates: # to fix the df
+            if len_df < min_len_req:  # reject this tuple
+                partial_symbols.append(tick)
+            elif len_df < n_valid_dates:  # to fix the df
                 this_df_dates = set([TimeHandler.get_string_from_timestamp(date) for date in df.index])
                 valid_dates_for_ex = set([TimeHandler.get_string_from_timestamp(date) for date in valid_dates_for_ex])
                 missing_dates = valid_dates_for_ex.difference(this_df_dates)
                 missing_dates = list(missing_dates)
                 missing_dates.sort()
                 self.fill_missing_dates(df, missing_dates)
-                final_list_tuples.append( (tick, df) )
+                final_list_tuples.append((tick, df))
             else:
-                final_list_tuples.append( (tick, df) )
+                final_list_tuples.append((tick, df))
 
         return final_list_tuples, partial_symbols
 
@@ -180,21 +182,22 @@ class DataManager:
         timestamp_series = df['timestamp_strings']
         fallback_timestamp_strings = []
         for missing_date in missing_dates:
-            fallback_vals = timestamp_series[timestamp_series<missing_date]
-            assert len(fallback_vals)>0, f'LENGTH ERROR: {missing_date=} does not have a fallback value in the dataframe'
+            fallback_vals = timestamp_series[timestamp_series < missing_date]
+            assert len(fallback_vals) > 0, f'LENGTH ERROR: {missing_date=} does not have a fallback value in the dataframe'
             if fallback_vals.empty:
                 fallback_timestamp_strings.append('')
             else:
                 fallback_timestamp_strings.append(
                     fallback_vals[-1]
                 )
-        
+
         for to_insert_timestamp_str, fallback_timestamp_str in zip(missing_dates, fallback_timestamp_strings):
             if not fallback_timestamp_str:
                 continue
             df_temp = df.loc[df['timestamp_strings']==fallback_timestamp_str].copy()
             t1 = pd.Timestamp(to_insert_timestamp_str).tz_localize('UTC')
-            df_temp.index = [t1]
+            index: Index = [t1]
+            df_temp.index = index
             df_temp.index.name = 'timestamp'
             df_temp.drop('timestamp_strings', axis=1, inplace=True)
             df = pd.concat([df, df_temp], axis=0)
@@ -224,7 +227,7 @@ class DataManager:
 
 
 class MainStocks:
-    def __init__(self, db_name='Stock_DataDB.db', assets: Assets = None):
+    def __init__(self, db_name, assets: Assets):
         self.db_path = os.path.join(
             DATAMGR_ABS_PATH, os.path.join("tempDir", db_name))
         self.table_manager = MainTableManager(self.db_path)
@@ -262,7 +265,7 @@ class DailyStockTables:
         self.main_stocks = main_stocks
         self.db = self.main_stocks.table_manager.db
 
-    def update_daily_stock_data(self, list_of_tuples: list, slice_val=50, threading=True):
+    def update_daily_stock_data(self, list_of_tuples: List[Tuple[str, pd.DataFrame]], slice_val=50, threading=True):
         """
         Input: list_of_tuples
         Format: [('SYMBOL1', pandas.Dataframe), ('SYMBOL2', pandas.Dataframe)...]
@@ -284,9 +287,9 @@ class DailyStockTables:
             groups_of_tuples.append(list_of_tuples[i:end_value])
 
         # Create the step_value+1 DBs
-        list_main_stock_connections: Iterable[MainStocks] = []
+        list_main_stock_connections: List[MainStocks] = []
         for i in range(0, len(groups_of_tuples)):
-            this_main_stock = MainStocks(db_name=os.path.join('threadDir', f'Temp_DB{i}.db'))
+            this_main_stock = MainStocks(db_name=os.path.join('threadDir', f'Temp_DB{i}.db'), assets=Assets())
             this_main_stock.table_manager.drop_all_tables(exclude=[this_main_stock.table_manager.table_name])
             list_main_stock_connections.append(this_main_stock)
 
@@ -313,13 +316,13 @@ class DailyStockTables:
 
         print('Update completed\n')
 
-    def insert_into_dbs_without_threading(self, groups_of_tuples: Iterable[tuple], list_main_stock_connections):
+    def insert_into_dbs_without_threading(self, groups_of_tuples: List[List[Tuple[str, pd.DataFrame]]], list_main_stock_connections):
         for list_of_tuples, main_stocks_connection in zip(groups_of_tuples, list_main_stock_connections):
             self.insert_into_dbs_one_connection(
                 list_of_tuples, main_stocks_connection)
             # print(f"Status: {main_stocks_connection.db_path} is Complete")
 
-    def insert_into_dbs_with_threading(self, groups_of_tuples: Iterable[tuple], list_main_stock_connections):
+    def insert_into_dbs_with_threading(self, groups_of_tuples: List[List[Tuple[str, pd.DataFrame]]], list_main_stock_connections):
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = {
@@ -383,7 +386,7 @@ class DailyStockDataTable:
         self.table_manager = DailyDataTableManager(
             table_name=table_name, db=db)
 
-    def update_daily_stock_data(self, list_of_timestamped_data: tuple):
+    def update_daily_stock_data(self, list_of_timestamped_data: List[Dict[str, Any]]):
         """
         Accepts a list of dictionaries of timestamped OHLCVTV data
         Returns: list with the new date available from and date available to
