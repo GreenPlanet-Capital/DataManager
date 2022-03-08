@@ -16,37 +16,57 @@ import configparser
 
 class DataExtractor:
     """
-        Extracts data given a specific set of stock symbols.
+    Extracts data given a specific set of stock symbols.
 
-        Example:
-        extractor = DataExtractor()
-        complete_data, partial_data = extractor.getMultipleListHistoricalAlpaca(required_symbols_data,
-            required_dates, TimeFrame.Day, exchangeName)
+    Example:
+    extractor = DataExtractor()
+    complete_data, partial_data = extractor.getMultipleListHistoricalAlpaca(required_symbols_data,
+        required_dates, TimeFrame.Day, exchangeName)
 
-        Inputs:
-            - `None`
-        """
+    Inputs:
+        - `None`
+    """
+
     def __init__(self) -> None:
         self.configParse = configparser.ConfigParser()
-        self.configParse.read(os.path.join(core.DATAMGR_ABS_PATH, os.path.join('config_files', 'assetConfig.cfg')))
+        self.configParse.read(
+            os.path.join(
+                core.DATAMGR_ABS_PATH, os.path.join("config_files", "assetConfig.cfg")
+            )
+        )
         core.setEnv()
         self.AlpacaAPI = REST(raw_data=True)
         self.AsyncObj = HistoricalAsync()
 
-    def getOneHistoricalAlpaca(self, symbolName, dateFrom, dateTo, timeframe: TimeFrame, adjustment='all'):
-        return self.AlpacaAPI.get_bars(symbolName, timeframe, dateFrom, dateTo, adjustment=adjustment).df
+    def getOneHistoricalAlpaca(
+        self, symbolName, dateFrom, dateTo, timeframe: TimeFrame, adjustment="all"
+    ):
+        return self.AlpacaAPI.get_bars(
+            symbolName, timeframe, dateFrom, dateTo, adjustment=adjustment
+        ).df
 
-    def callHistoricalAlpaca(self, listSymbols, dateFrom, dateTo, timeframe: TimeFrame, adjustment='all'):
+    def callHistoricalAlpaca(
+        self, listSymbols, dateFrom, dateTo, timeframe: TimeFrame, adjustment="all"
+    ):
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.AsyncObj.get_historic_bars(listSymbols, dateFrom, dateTo, timeframe, adjustment))
+        loop.run_until_complete(
+            self.AsyncObj.get_historic_bars(
+                listSymbols, dateFrom, dateTo, timeframe, adjustment
+            )
+        )
         to_return = copy.deepcopy(self.AsyncObj.resultAsync)
         self.AsyncObj.reset_async_list()
         return to_return
 
-    def callHistoricalMultipleAlpaca(self, listSymbols, list_dates, timeframe: TimeFrame, adjustment='all'):
+    def callHistoricalMultipleAlpaca(
+        self, listSymbols, list_dates, timeframe: TimeFrame, adjustment="all"
+    ):
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.AsyncObj.get_multiple_dates_historic_bars(listSymbols, list_dates, timeframe,
-                                                                               adjustment))
+        loop.run_until_complete(
+            self.AsyncObj.get_multiple_dates_historic_bars(
+                listSymbols, list_dates, timeframe, adjustment
+            )
+        )
         to_return = copy.deepcopy(self.AsyncObj.resultAsync)
         self.AsyncObj.reset_async_list()
         return to_return
@@ -69,8 +89,16 @@ class DataExtractor:
             - `exchange_name`: exchange to check against for output validation
             - `maxRetries`: number of times to retry Alpaca calls when encountering exceptions
     """
-    def getMultipleListHistoricalAlpaca(self, list_symbols, list_dates, timeframe: TimeFrame, exchange_name,
-                                        adjustment='all', maxRetries=5):
+
+    def getMultipleListHistoricalAlpaca(
+        self,
+        list_symbols,
+        list_dates,
+        timeframe: TimeFrame,
+        exchange_name,
+        adjustment="all",
+        maxRetries=5,
+    ):
         this_exchange = mcal.get_calendar(exchange_name)
         min_date_timeframe = False
         max_date_timeframe = False
@@ -82,15 +110,20 @@ class DataExtractor:
             max_date_timeframe = max(max_date_timeframe, datePair[1])
             min_date_timeframe = min(min_date_timeframe, datePair[0])
             valid_days = this_exchange.valid_days(datePair[0], datePair[1])
-            list_dates[i] = (TimeHandler.get_alpaca_string_from_timestamp(valid_days[0]),
-                             TimeHandler.get_alpaca_string_from_timestamp(valid_days[-1])
-                             )
+            list_dates[i] = (
+                TimeHandler.get_alpaca_string_from_timestamp(valid_days[0]),
+                TimeHandler.get_alpaca_string_from_timestamp(valid_days[-1]),
+            )
 
-        totalLength = len(self.callCalendarAlpaca(min_date_timeframe, max_date_timeframe))
+        totalLength = len(
+            self.callCalendarAlpaca(min_date_timeframe, max_date_timeframe)
+        )
         if totalLength > 1000:
-            raise Exception('Alpaca only has data on past 1000 trading days')
+            raise Exception("Alpaca only has data on past 1000 trading days")
 
-        def fix_output(list_tuples: Iterable[Tuple[str, pd.DataFrame]]) -> Dict[str, pd.DataFrame]:
+        def fix_output(
+            list_tuples: Iterable[Tuple[str, pd.DataFrame]]
+        ) -> Dict[str, pd.DataFrame]:
             dict_stocks_df = {}
             for individual_tup in list_tuples:
                 df_this = individual_tup[1]
@@ -107,13 +140,19 @@ class DataExtractor:
         this_list_symbols = list_symbols
         this_list_dates = list_dates
 
-        while currentRetries <= maxRetries \
-                and len(valid_tuples) != len(list_symbols) \
-                and len(this_list_symbols) != 0:
-            current_output = self.callHistoricalMultipleAlpaca(this_list_symbols,
-                                                               this_list_dates, timeframe,
-                                                               adjustment)
-            cleaned_output = [df_tuple for df_tuple in current_output if not isinstance(df_tuple, Exception)]
+        while (
+            currentRetries <= maxRetries
+            and len(valid_tuples) != len(list_symbols)
+            and len(this_list_symbols) != 0
+        ):
+            current_output = self.callHistoricalMultipleAlpaca(
+                this_list_symbols, this_list_dates, timeframe, adjustment
+            )
+            cleaned_output = [
+                df_tuple
+                for df_tuple in current_output
+                if not isinstance(df_tuple, Exception)
+            ]
             current_output = fix_output(cleaned_output)
             list_failed_symbols = []
             list_failed_dates = []
@@ -128,8 +167,10 @@ class DataExtractor:
                 for one_df in fetched_dfs:
                     if one_df.empty:
                         empty_symbols.add(stock_symbol)
-                    elif (TimeHandler.get_alpaca_string_from_timestamp(one_df.index[0]),
-                          TimeHandler.get_alpaca_string_from_timestamp(one_df.index[-1])) == date_pair:
+                    elif (
+                        TimeHandler.get_alpaca_string_from_timestamp(one_df.index[0]),
+                        TimeHandler.get_alpaca_string_from_timestamp(one_df.index[-1]),
+                    ) == date_pair:
                         valid_tuples.append((stock_symbol, one_df))
                     else:
                         partial_symbols.add(stock_symbol)
@@ -138,24 +179,41 @@ class DataExtractor:
             this_list_dates = list_failed_dates
             currentRetries += 1
 
-        print(f'{len(valid_tuples)=} ,{len(partial_symbols)=}, {len(empty_symbols)=}')
+        print(f"{len(valid_tuples)=} ,{len(partial_symbols)=}, {len(empty_symbols)=}")
         partial_symbols.update(empty_symbols)
         return valid_tuples, list(partial_symbols)
 
-    def getListHistoricalAlpaca(self, listSymbols, dateFrom, dateTo, timeframe: TimeFrame, adjustment='all',
-                                maxRetries=3):
+    def getListHistoricalAlpaca(
+        self,
+        listSymbols,
+        dateFrom,
+        dateTo,
+        timeframe: TimeFrame,
+        adjustment="all",
+        maxRetries=3,
+    ):
         totalLength = len(self.AlpacaAPI.get_calendar(dateFrom, dateTo))
 
         if totalLength > 1000:
-            raise Exception('Alpaca only has data on past 5 years')
+            raise Exception("Alpaca only has data on past 5 years")
 
         currentRetries = 0
         thisListSymbols = set(listSymbols)
         initialDfs = []
         while currentRetries <= maxRetries and len(thisListSymbols) != 0:
-            currentOutput = self.callHistoricalAlpaca(list(thisListSymbols), dateFrom, dateTo, timeframe, adjustment)
-            initialDfs.extend([e for e in currentOutput if not isinstance(e, Exception)])
-            thisSucceededStocks = set([f.__getitem__(0) for f in currentOutput if not isinstance(f, Exception)])
+            currentOutput = self.callHistoricalAlpaca(
+                list(thisListSymbols), dateFrom, dateTo, timeframe, adjustment
+            )
+            initialDfs.extend(
+                [e for e in currentOutput if not isinstance(e, Exception)]
+            )
+            thisSucceededStocks = set(
+                [
+                    f.__getitem__(0)
+                    for f in currentOutput
+                    if not isinstance(f, Exception)
+                ]
+            )
             thisListSymbols = thisListSymbols.difference(thisSucceededStocks)
             currentRetries += 1
         validDfs, partialDfs = [], []
@@ -169,13 +227,15 @@ class DataExtractor:
         return validDfs, partialDfs
 
 
-if '__main__' == __name__:
+if "__main__" == __name__:
     extractor = DataExtractor()
     manager = Assets()
     start = time.time()
-    sol, partial = extractor.getListHistoricalAlpaca(manager.asset_table_manager.get_all_tradable_symbols()[:10],
-                                                     datetime(2017, 6, 1).strftime('%Y-%m-%d'),
-                                                     datetime(2021, 2, 1).strftime('%Y-%m-%d'),
-                                                     TimeFrame.Day)
+    sol, partial = extractor.getListHistoricalAlpaca(
+        manager.asset_table_manager.get_all_tradable_symbols()[:10],
+        datetime(2017, 6, 1).strftime("%Y-%m-%d"),
+        datetime(2021, 2, 1).strftime("%Y-%m-%d"),
+        TimeFrame.Day,
+    )
     end = time.time()
     print(end - start)

@@ -17,16 +17,15 @@ class DataType(str, Enum):
 class HistoricalAsync:
     def __init__(self):
         core.setEnv()
-        api_key_id = os.environ.get('APCA_API_KEY_ID')
-        api_secret = os.environ.get('APCA_API_SECRET_KEY')
-        base_url = os.environ.get('APCA_API_BASE_URL')
+        api_key_id = os.environ.get("APCA_API_KEY_ID")
+        api_secret = os.environ.get("APCA_API_SECRET_KEY")
+        base_url = os.environ.get("APCA_API_BASE_URL")
 
-        self.rest = AsyncRest(key_id=api_key_id,
-                              secret_key=api_secret)
+        self.rest = AsyncRest(key_id=api_key_id, secret_key=api_secret)
 
-        self.api = tradeapi.REST(key_id=api_key_id,
-                                 secret_key=api_secret,
-                                 base_url=URL(base_url))
+        self.api = tradeapi.REST(
+            key_id=api_key_id, secret_key=api_secret, base_url=URL(base_url)
+        )
 
         self.resultAsync = []
 
@@ -43,8 +42,15 @@ class HistoricalAsync:
         else:
             raise Exception(f"Unsupoported data type: {data_type}")
 
-    async def get_historic_data_base(self, symbols, data_type: DataType, start, end,
-                                     timeframe: TimeFrame = None, adjustmentInput='raw'):
+    async def get_historic_data_base(
+        self,
+        symbols,
+        data_type: DataType,
+        start,
+        end,
+        timeframe: TimeFrame = None,
+        adjustmentInput="raw",
+    ):
         """
         base function to use with all
         :param adjustmentInput:
@@ -57,7 +63,7 @@ class HistoricalAsync:
         major = sys.version_info.major
         minor = sys.version_info.minor
         if major < 3 or minor < 6:
-            raise Exception('asyncio is not support in your python version')
+            raise Exception("asyncio is not support in your python version")
         msg = f"Getting {data_type} data for {len(symbols)} symbols"
         msg += f", timeframe: {timeframe}" if timeframe else ""
         msg += f" between dates: start={start}, end={end}"
@@ -66,9 +72,12 @@ class HistoricalAsync:
         tasks = []
 
         for symbol in symbols:
-            args = [symbol, start, end, timeframe] if timeframe else \
-                [symbol, start, end]
-            tasks.append(self.get_data_method(data_type)(*args, adjustment=adjustmentInput))
+            args = (
+                [symbol, start, end, timeframe] if timeframe else [symbol, start, end]
+            )
+            tasks.append(
+                self.get_data_method(data_type)(*args, adjustment=adjustmentInput)
+            )
 
         if minor >= 8:
             results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -82,13 +91,21 @@ class HistoricalAsync:
             elif not len(response[1]):
                 bad_requests += 1
 
-        print(f"Total of {len(results)} {data_type}, and {bad_requests} "
-              f"empty responses.")
+        print(
+            f"Total of {len(results)} {data_type}, and {bad_requests} "
+            f"empty responses."
+        )
 
         return results
 
-    async def get_historic_data_multiple_base(self, symbols, data_type: DataType, list_dates,
-                                              timeframe: TimeFrame = None, adjustmentInput='raw'):
+    async def get_historic_data_multiple_base(
+        self,
+        symbols,
+        data_type: DataType,
+        list_dates,
+        timeframe: TimeFrame = None,
+        adjustmentInput="raw",
+    ):
         """
         base function to use with all
         :param adjustmentInput:
@@ -101,7 +118,7 @@ class HistoricalAsync:
         major = sys.version_info.major
         minor = sys.version_info.minor
         if major < 3 or minor < 6:
-            raise Exception('asyncio is not support in your python version')
+            raise Exception("asyncio is not support in your python version")
         msg = f"Getting {data_type} data for {len(symbols)} symbols"
         msg += f", timeframe: {timeframe}" if timeframe else ""
         msg += " between dates specified in the list"
@@ -110,9 +127,14 @@ class HistoricalAsync:
         tasks = []
 
         for i, symbol in enumerate(symbols):
-            args = [symbol, list_dates[i][0], list_dates[i][1], timeframe] if timeframe else \
-                [symbol, list_dates[i][0], list_dates[i][1]]
-            tasks.append(self.get_data_method(data_type)(*args, adjustment=adjustmentInput))
+            args = (
+                [symbol, list_dates[i][0], list_dates[i][1], timeframe]
+                if timeframe
+                else [symbol, list_dates[i][0], list_dates[i][1]]
+            )
+            tasks.append(
+                self.get_data_method(data_type)(*args, adjustment=adjustmentInput)
+            )
 
         if minor >= 8:
             results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -126,18 +148,26 @@ class HistoricalAsync:
             elif not len(response[1]):
                 bad_requests += 1
 
-        print(f"Total of {len(results)} {data_type}, and {bad_requests} "
-              f"empty responses.")
+        print(
+            f"Total of {len(results)} {data_type}, and {bad_requests} "
+            f"empty responses."
+        )
 
         return results
 
-    async def get_historic_bars(self, symbols, start, end, timeframe: TimeFrame, adjustmentInput='raw'):
-        self.resultAsync = await self.get_historic_data_base(symbols, DataType.Bars, start, end, timeframe,
-                                                             adjustmentInput)
+    async def get_historic_bars(
+        self, symbols, start, end, timeframe: TimeFrame, adjustmentInput="raw"
+    ):
+        self.resultAsync = await self.get_historic_data_base(
+            symbols, DataType.Bars, start, end, timeframe, adjustmentInput
+        )
 
-    async def get_multiple_dates_historic_bars(self, symbols, list_dates, timeframe: TimeFrame, adjustmentInput='raw'):
-        self.resultAsync = await self.get_historic_data_multiple_base(symbols, DataType.Bars, list_dates, timeframe,
-                                                                      adjustmentInput)
+    async def get_multiple_dates_historic_bars(
+        self, symbols, list_dates, timeframe: TimeFrame, adjustmentInput="raw"
+    ):
+        self.resultAsync = await self.get_historic_data_multiple_base(
+            symbols, DataType.Bars, list_dates, timeframe, adjustmentInput
+        )
 
     async def get_historic_trades(self, symbols, start, end, timeframe: TimeFrame):
         await self.get_historic_data_base(symbols, DataType.Trades, start, end)
