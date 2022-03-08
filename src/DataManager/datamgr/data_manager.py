@@ -1,3 +1,4 @@
+
 from datetime import datetime, timezone
 import os
 from pandas import Index, Timestamp
@@ -93,7 +94,7 @@ class DataManager:
     def reset_required_vars(self):
         self._required_symbols_data, self._required_dates = [], []
 
-    def validate_timestamps(self, start_timestamp, end_timestamp):
+    def validate_timestamps(self, start_timestamp, end_timestamp) -> Tuple[str, str, List[Any]]:
         if TimeHandler.get_datetime_from_string(
             start_timestamp
         ) > TimeHandler.get_datetime_from_string(end_timestamp):
