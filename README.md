@@ -13,6 +13,8 @@ foo@bar:~$ pip3 install git+https://github.com/GreenPlanet-Capital/DataManager@i
 - If you are developing DataManager
 ~~~shell
 foo@bar:~$ git clone https://github.com/GreenPlanet-Capital/DataManager@install_b
+foo@bar:~$ cd DataManager/
+foo@bar:~$ pip -e install .
 ~~~
 
 ### Setup your API Keys
