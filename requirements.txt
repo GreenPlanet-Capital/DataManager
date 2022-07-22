@@ -1,11 +1,8 @@
 pandas
-dataset
 pytest
-iexfinance
 alpaca-trade-api
 pandas_market_calendars
 lxml
 httplib2<0.16.0
-pydrive
 requests
-gdown
+pymarketstore

@@ -1,10 +1,14 @@
 from datetime import timedelta
-import os
-from typing import List
+from typing import List, Tuple
+
+import numpy as np
+import pandas as pd
+import pymarketstore as pymkts
+from pandas import DataFrame
+
 from DataManager.database_layer.database import DatabaseManager
-from DataManager.utils.conversions import _Conversions
+from DataManager.utils.conversions import Conversions
 from DataManager.utils.timehandler import TimeHandler
-from DataManager.core import DATAMGR_ABS_PATH
 
 
 class TableManager:
@@ -38,13 +42,13 @@ class TableManager:
 
     def get_assets_list(self):
         list_of_assets = self.db.select(self.table_name).fetchall()
-        return _Conversions.tuples_to_dict(list_of_assets, self.columns)
+        return Conversions.tuples_to_dict(list_of_assets, self.columns)
 
     def get_one_asset(self, stock_symbol):
         asset = self.db.select(
             self.table_name, {"stockSymbol": stock_symbol}
         ).fetchone()
-        return _Conversions.asset_row_to_dict(self.columns, asset) if asset else None
+        return Conversions.asset_row_to_dict(self.columns, asset) if asset else None
 
     def get_columns(self):
         return self.columns
@@ -77,7 +81,7 @@ class AssetTableManager(TableManager):
                 "isSuspended": isSuspended,
             },
         ).fetchall()
-        return _Conversions.tuples_to_dict(list_of_assets, self.columns)
+        return Conversions.tuples_to_dict(list_of_assets, self.columns)
 
     def get_index_basket(self, index_name, isDelisted=False, isSuspended=False):
         list_of_assets = self.db.select(
@@ -88,7 +92,7 @@ class AssetTableManager(TableManager):
                 "isSuspended": isSuspended,
             },
         ).fetchall()
-        return _Conversions.tuples_to_dict(list_of_assets, self.columns)
+        return Conversions.tuples_to_dict(list_of_assets, self.columns)
 
     def get_all_tradable_symbols(self, isDelisted=False, isSuspended=False):
         list_of_assets = self.db.select(
@@ -96,46 +100,41 @@ class AssetTableManager(TableManager):
         ).fetchall()
         return [
             asset["stockSymbol"]
-            for asset in _Conversions.tuples_to_dict(list_of_assets, self.columns)
+            for asset in Conversions.tuples_to_dict(list_of_assets, self.columns)
         ]
 
     def get_symbols_from_criteria(self, criteria):
         list_of_assets = self.db.select(self.table_name, criteria).fetchall()
         return [
             asset["stockSymbol"]
-            for asset in _Conversions.tuples_to_dict(list_of_assets, self.columns)
+            for asset in Conversions.tuples_to_dict(list_of_assets, self.columns)
         ]
 
 
-class MainTableManager(TableManager):
-    def __init__(self, db_name):
-        super().__init__(db_name)
-        self.db: DatabaseManager = DatabaseManager(db_name)
-        self.table_name = "MainStockData"
-        self.columns = {
-            "stockSymbol": "text not null primary key",
-            "dataAvailableFrom": "text",
-            "dataAvailableTo": "text",
-            "dateLastUpdated": "text not null",
-        }
-        self.create_asset_table(self.table_name, self.columns)
+class DailyStockTableManager:
+    def __init__(self, timeframe: str):
+        self.pym_cli = pymkts.Client()
+        self.set_symbols = set(self.pym_cli.list_symbols())
+        self.timeframe = timeframe[:2]
 
     def check_data_availability(self, stock_symbol, start_timestamp, end_timestamp):
         start_timestamp = TimeHandler.get_datetime_from_string(start_timestamp)
         end_timestamp = TimeHandler.get_datetime_from_string(end_timestamp)
 
-        fetchDateStart = self.db.select_column_value(
-            self.table_name, stock_symbol, "dataAvailableFrom"
-        ).fetchall()[0][0]
-        fetchDateEnd = self.db.select_column_value(
-            self.table_name, stock_symbol, "dataAvailableTo"
-        ).fetchall()[0][0]
-
-        if not fetchDateStart or not fetchDateEnd:
+        if stock_symbol in self.set_symbols:
+            all_dates = list(
+                self.pym_cli.sql(
+                    [f"SELECT Epoch FROM `{stock_symbol}/{self.timeframe}/OHLCV`;"]
+                )
+                .first()
+                .df()
+                .index
+            )
+        else:
             return False, start_timestamp, end_timestamp
 
-        dataAvailableFrom = TimeHandler.get_datetime_from_string(fetchDateStart)
-        dataAvailableTo = TimeHandler.get_datetime_from_string(fetchDateEnd)
+        dataAvailableFrom = all_dates[0].to_pydatetime()
+        dataAvailableTo = all_dates[-1].to_pydatetime()
 
         if (start_timestamp.date() < dataAvailableFrom.date()) and (
             end_timestamp.date() < dataAvailableFrom.date()
@@ -164,103 +163,70 @@ class MainTableManager(TableManager):
         else:
             return True, None, None
 
+    def update_daily_stock_data(self, list_of_tuples: List[Tuple[str, pd.DataFrame]]):
+        """
+        Input: list_of_tuples
+        Format: [('SYMBOL1', pandas.Dataframe), ('SYMBOL2', pandas.Dataframe)...]
+        """
 
-class DailyDataTableManager:
-    def __init__(self, table_name, db: DatabaseManager):
-        self.db = db
-        self.table_name = table_name
-        self.columns = {
-            "timestamp": "text not null primary key",
-            "open": "real",
-            "high": "real",
-            "low": "real",
-            "close": "real",
-            "volume": "integer",
-            "trade_count": "integer",
-            "vwap": "real",
-        }
-        self.create_sub_table(self.table_name, self.columns)
+        print("Updating DailyStockTables Database...")
 
-    def __del__(self):
-        del self.db
+        for stock_symbol, df in list_of_tuples:
+            dict_columns_type = {
+                "open": float,
+                "high": float,
+                "low": float,
+                "close": float,
+                "volume": int,
+                "trade_count": int,
+                "vwap": float,
+            }
+            df = df.astype(dict_columns_type)
+            self.update_one_stock_table(stock_symbol, df)
 
-    @staticmethod
-    def return_cols():
-        columns = {
-            "timestamp": "text not null primary key",
-            "open": "real",
-            "high": "real",
-            "low": "real",
-            "close": "real",
-            "volume": "integer",
-            "trade_count": "integer",
-            "vwap": "real",
-        }
-        return list(columns.keys())
+        print("Update completed!")
 
-    def create_sub_table(self, table_name, columns):
-        self.db.create_table(f"{table_name}", columns)
-
-    def insert_data(self, asset_data):
-        self.db.add(self.table_name, asset_data)
-
-    def get_one_day_data(self, timestamp):
-        asset = self.db.select(self.table_name, {"timestamp": timestamp}).fetchone()
-        return _Conversions.asset_row_to_dict(self.columns, asset) if asset else None
-
-    def get_data(self, start_timestamp, end_timestamp):
-        criteria = {"start_timestamp": start_timestamp, "end_timestamp": end_timestamp}
-        order_by = "timestamp"
-        daily_data = self.db.select_between_range(
-            self.table_name, criteria, order_by
-        ).fetchall()
-        return _Conversions().tuples_to_dict(daily_data, self.columns)
-
-    def get_dates_for_available_data(self):
-        def get_date_available_from(self: DailyDataTableManager):
-            return self.db.select_min_value_from_column(
-                self.table_name, "timestamp"
-            ).fetchall()
-
-        def get_date_available_to(self: DailyDataTableManager):
-            return self.db.select_max_value_from_column(
-                self.table_name, "timestamp"
-            ).fetchall()
-
-        return get_date_available_from(self)[0][0], get_date_available_to(self)[0][0]
-
-    def _update_one_day_data(self, timestamp_ohlc_dict):
-        self.db.update(
-            self.table_name,
-            {"timestamp": timestamp_ohlc_dict["timestamp"]},
-            timestamp_ohlc_dict,
+    def update_one_stock_table(self, stock_symbol, df: DataFrame):
+        df_updated = df.reset_index()
+        df_updated["timestamp"] = df_updated["timestamp"].apply(
+            lambda d: d.replace(hour=0, minute=0, second=0).value // 10**9
+        )
+        dt = np.dtype(
+            [
+                ("Epoch", np.int64),
+                ("open", np.float64),
+                ("high", np.float64),
+                ("low", np.float64),
+                ("close", np.float64),
+                ("volume", np.int64),
+                ("trade_count", np.int64),
+                ("vmap", np.float64),
+            ]
+        )
+        data = np.array([tuple(v) for v in df_updated.values.tolist()], dtype=dt)
+        self.pym_cli.write(
+            data, f"{stock_symbol}/{self.timeframe}/OHLCV", isvariablelength=True
         )
 
-
-if "__main__" == __name__:
-    asset_table = AssetTableManager(
-        os.path.join(DATAMGR_ABS_PATH, os.path.join("tempDir", "Asset_Test.db"))
-    )
-    data = {
-        "stockSymbol": "TEST_SYMBOL_TWO",
-        "companyName": "TEST_COMPANY",
-        "exchangeName": "TEST_EXCHANGE",
-        "dateLastUpdated": "2020-01-01",
-        "region": "TomorrowLand",
-        "currency": "USD",
-        "isDelisted": 0,
-        "isShortable": 1,
-        "isSuspended": 0,
-    }
-    asset_table.insert_asset(data)
-    # asset_table.update_asset(data)
-    output = asset_table.get_exchange_basket(exchangeName="TEST_EXCHANGE")
-    # output = asset_table.get_assets_list()
-    # output = asset_table.get_all_tradable_symbols()
-
-    db = DatabaseManager(
-        os.path.join(DATAMGR_ABS_PATH, os.path.join("tempDir", "Stock_DataDB.db"))
-    )
-    daily_data_table = DailyDataTableManager("TEST_SYMBOL_TABLE", db)
-    a = daily_data_table.get_data("2021-09-12", "2021-09-20")
-    print()
+    def get_daily_stock_data(
+        self, this_list_of_symbols, start_timestamp, end_timestamp
+    ):
+        dictStockData = {}
+        int_start_tp, int_end_tp = TimeHandler.get_unix_time_from_string(
+            start_timestamp
+        ), TimeHandler.get_unix_time_from_string(end_timestamp)
+        print("Reading data from database.")
+        for individual_symbol in this_list_of_symbols:
+            this_params = pymkts.Params(
+                individual_symbol, self.timeframe, "OHLCV", int_start_tp, int_end_tp
+            )
+            this_df = self.pym_cli.query(this_params).first().df().reset_index()
+            this_df.rename(columns={"Epoch": "timestamp"}, inplace=True)
+            this_df["timestamp"] = this_df["timestamp"].apply(
+                lambda d: TimeHandler.get_string_from_datetime64(d.tz_convert(None))
+            )
+            dictStockData[individual_symbol] = this_df.copy()
+        print(
+            f"Read complete! Returning dataframe(s) for {len(this_list_of_symbols)} symbols.\n"
+        )
+        return dictStockData

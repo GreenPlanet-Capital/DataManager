@@ -22,6 +22,16 @@ foo@bar:~$ pip install -e .
 foo@bar:~$ datamgr set api-keys Alpaca AlpacaKey <public-key-here> AlpacaSecret <private-key-here>
 ~~~
 
+### Local marketstore setup
+~~~shell
+foo@bar:~$ git clone git@github.com:alpacahq/marketstore.git
+foo@bar:~$ cd marketstore
+foo@bar:~$ go get -u github.com/alpacahq/marketstore
+foo@bar:~$ make install
+foo@bar:~$ marketstore init
+foo@bar:~$ marketstore start
+~~~
+
 ### Calling from External Directory
 ```python
 from DataManager.datamgr import data_manager
@@ -84,25 +94,5 @@ Deleted <path>/DataManager/tempDir/AssetDB.db
   "shortable": "False", 
   "easy_to_borrow": "False", 
   "fractionable": "False"
-}
-```
-
-### Example of PyNse API Return
-
-```json
-{ "symbol": "JBCHEPHARM", 
-  "companyName": "JB Chemicals & Pharmaceuticals Limited",
-  "industry": "PHARMACEUTICALS",
-  "activeSeries": ["EQ"],
-  "debtSeries": [],
-  "tempSuspendedSeries": [],
-  "isFNOSec": "False",
-  "isCASec": "False",
-  "isSLBSec": "True",
-  "isDebtSec": "False",
-  "isSuspended": "False",
-  "isETFSec": "False",
-  "isDelisted": "False",
-  "isin": "INE572A01028"
 }
 ```

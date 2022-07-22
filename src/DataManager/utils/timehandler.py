@@ -26,6 +26,10 @@ class TimeHandler:
         return np.datetime64(inputString)
 
     @staticmethod
+    def get_unix_time_from_string(inputString: str) -> int:
+        return TimeHandler.get_datetime64_from_string(inputString).astype("int64")
+
+    @staticmethod
     def get_alpaca_string_from_string(inputString: str) -> str:
         return (datetime.strptime(inputString, "%Y-%m-%d %H:%M:%S")).strftime(
             "%Y-%m-%d"
@@ -54,7 +58,7 @@ class TimeHandler:
     @staticmethod
     def get_clean_datetime_from_string(string_inp: str):
         return TimeHandler.get_datetime_from_string(string_inp).replace(
-            hour=0, minute=0
+            hour=0, minute=0, second=0
         )
 
     @staticmethod

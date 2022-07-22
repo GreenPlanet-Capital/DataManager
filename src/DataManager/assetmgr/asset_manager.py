@@ -51,26 +51,6 @@ class Assets:
                         {"stockSymbol": one_stock, "index_name": index_name}
                     )
 
-    # def update_db_pynse_assets(self):
-    #     listPyNseAssets, _ = self.assetExtraction.getAllPyNSEAssets(threading=True)
-
-    #     for individualAsset in listPyNseAssets:
-    #         asset_data = {'stockSymbol': individualAsset['symbol'], 'companyName': individualAsset['companyName'],
-    #                       'exchangeName': 'NSE', 'isDelisted': individualAsset['isDelisted'],
-    #                       'isShortable': individualAsset['isSLBSec'], 'isSuspended': individualAsset['isSuspended']}
-
-    #         self.insert_assets_into_db(asset_data)
-
-    # def update_db_iex_assets(self):
-    #     list_of_assets = self.assetExtraction.getAllIEXCloudAssets()
-    #
-    #     for iterator in range(len(list_of_assets)):
-    #         individualAsset = list_of_assets[iterator]
-    #         asset_data = {'stockSymbol': individualAsset['symbol'], 'companyName': individualAsset['name'],
-    #                       #   'exchangeName': individualAsset['exchange'],
-    #                       'region': individualAsset['region'], 'currency': individualAsset['currency']}
-    #         self.insert_assets_into_db(asset_data)
-
     def update_all_dbs(self):
         print("Updating Assets Database...")
         list_of_update_methods = [
@@ -97,8 +77,6 @@ class Assets:
 
 
 if __name__ == "__main__":
-    # Outdated main
-    os.environ["SANDBOX_MODE"] = "True"
     mgr = Assets("AssetDB.db")
     mgr.update_db_alpaca_assets()
     a = mgr.asset_table_manager.get_assets_list()

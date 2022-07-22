@@ -5,9 +5,9 @@ with open("requirements.txt", "r", encoding="utf-8") as f:
 
 setup_args = dict(
     long_description_content_type="text/markdown",
-    packages=find_packages(where='src'),
+    packages=find_packages(where="src"),
     install_requires=REQUIRED_PACKAGES,
 )
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     setup(**setup_args)

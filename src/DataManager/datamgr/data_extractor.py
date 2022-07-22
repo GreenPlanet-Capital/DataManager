@@ -97,7 +97,7 @@ class DataExtractor:
         timeframe: TimeFrame,
         exchange_name,
         adjustment="all",
-        maxRetries=5,
+        maxRetries=3,
     ):
         this_exchange = mcal.get_calendar(exchange_name)
         min_date_timeframe = False
@@ -129,9 +129,9 @@ class DataExtractor:
                 df_this = individual_tup[1]
                 symbol_this = individual_tup[0]
                 if symbol_this not in dict_stocks_df:
-                    dict_stocks_df[symbol_this] = [df_this]
+                    dict_stocks_df[symbol_this] = df_this
                 else:
-                    dict_stocks_df[symbol_this].append(df_this)
+                    dict_stocks_df[symbol_this].update(df_this)
             return dict_stocks_df
 
         currentRetries = 0
@@ -162,22 +162,25 @@ class DataExtractor:
                     list_failed_symbols.append(stock_symbol)
                     list_failed_dates.append(date_pair)
                     continue
-                fetched_dfs = current_output[stock_symbol]
 
-                for one_df in fetched_dfs:
-                    if one_df.empty:
-                        empty_symbols.add(stock_symbol)
-                    elif (
-                        TimeHandler.get_alpaca_string_from_timestamp(one_df.index[0]),
-                        TimeHandler.get_alpaca_string_from_timestamp(one_df.index[-1]),
-                    ) == date_pair:
-                        valid_tuples.append((stock_symbol, one_df))
-                    else:
-                        partial_symbols.add(stock_symbol)
+                fetched_df = current_output[stock_symbol]
+
+                if fetched_df.empty:
+                    list_failed_symbols.append(stock_symbol)
+                    list_failed_dates.append(date_pair)
+                elif (
+                    TimeHandler.get_alpaca_string_from_timestamp(fetched_df.index[0]),
+                    TimeHandler.get_alpaca_string_from_timestamp(fetched_df.index[-1]),
+                ) == date_pair:
+                    valid_tuples.append((stock_symbol, fetched_df))
+                else:
+                    partial_symbols.add(stock_symbol)
 
             this_list_symbols = list_failed_symbols
             this_list_dates = list_failed_dates
+            empty_symbols = set(list_failed_symbols)
             currentRetries += 1
+            time.sleep(60)  # 1 min between consecutive requests
 
         print(f"{len(valid_tuples)=} ,{len(partial_symbols)=}, {len(empty_symbols)=}")
         partial_symbols.update(empty_symbols)

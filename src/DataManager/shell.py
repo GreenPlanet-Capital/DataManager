@@ -1,6 +1,4 @@
 import typer
-import DataManager.gdrive_service.gdrive_assets as g_service
-
 import DataManager.config_files.set_config_file as cfg_setter
 
 app = typer.Typer()
@@ -43,40 +41,11 @@ def uninstall():
     print_msg_typer(*(cfg_setter.delete_temp_files()))
 
 
-@app.command()
-def gdrive_client_secrets():
-    typer.echo(
-        "Follow https://stackoverflow.com/questions/28184419/pydrive-invalid-client-secrets-file to get your "
-        "Google Drive credentials\n"
-    )
-    contents = str(input("Paste the contents of your client_sercrets.json here: "))
-    print_msg_typer(*(cfg_setter.gdrive_client_secrets(contents)))
-
-
 def print_msg_typer(success, msg):
     if not success:
         typer.echo(f"ERROR: {msg}")
     else:
         typer.echo(f"SUCCESS: {msg}")
-
-
-@app.command()
-def upload_files():
-    typer.echo("Uploading db files...")
-    g_service.upload_files()
-    typer.echo("Upload completed...\n")
-
-
-@app.command()
-def download_files():
-    typer.echo("Downloading db files...")
-    g_service.download_files()
-    typer.echo("Download completed...\n")
-
-
-@app.command()
-def init_remote():
-    g_service.init_remote()
 
 
 def main():
