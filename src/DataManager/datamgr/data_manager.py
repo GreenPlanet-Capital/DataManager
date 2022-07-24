@@ -112,6 +112,7 @@ class DataManager:
         end_timestamp,
         api="Alpaca",
         fill_data: int = 3,
+        fetch_data: bool = True
     ):
 
         print("Validating Dates...")
@@ -126,9 +127,9 @@ class DataManager:
         print("Finished checking dates availability!\n")
 
         # No data needs to be fetched
-        if len(self._required_dates) == 0:
-            print("All data is available locally")
-            self.list_of_symbols = self._basket_of_symbols
+        if len(self._required_dates) == 0 or fetch_data is False:
+            print("All data is available locally or fetch_data set to False")
+            self.list_of_symbols = list(set(self._basket_of_symbols) - set(self._required_symbols_data))
             return self._daily_stocks.get_daily_stock_data(
                 self.list_of_symbols, start_timestamp, end_timestamp
             )
