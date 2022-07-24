@@ -212,21 +212,27 @@ class DailyStockTableManager:
         self, this_list_of_symbols, start_timestamp, end_timestamp
     ):
         dictStockData = {}
-        int_start_tp, int_end_tp = TimeHandler.get_unix_time_from_string(
-            start_timestamp
-        ), TimeHandler.get_unix_time_from_string(end_timestamp)
         print("Reading data from database.")
         for individual_symbol in this_list_of_symbols:
-            this_params = pymkts.Params(
-                individual_symbol, self.timeframe, "OHLCV", int_start_tp, int_end_tp
-            )
-            this_df = self.pym_cli.query(this_params).first().df().reset_index()
-            this_df.rename(columns={"Epoch": "timestamp"}, inplace=True)
-            this_df["timestamp"] = this_df["timestamp"].apply(
-                lambda d: TimeHandler.get_string_from_datetime64(d.tz_convert(None))
-            )
-            dictStockData[individual_symbol] = this_df.copy()
+            dictStockData[individual_symbol] = self.get_specific_stock_data(individual_symbol,
+                                                                       start_timestamp,
+                                                                       end_timestamp)
         print(
             f"Read complete! Returning dataframe(s) for {len(this_list_of_symbols)} symbols.\n"
         )
         return dictStockData
+
+    def get_specific_stock_data(self, stock_name, start_timestamp, end_timestamp):
+        int_start_tp, int_end_tp = TimeHandler.get_unix_time_from_string(
+            start_timestamp
+        ), TimeHandler.get_unix_time_from_string(end_timestamp)
+
+        this_params = pymkts.Params(
+            stock_name, self.timeframe, "OHLCV", int_start_tp, int_end_tp
+        )
+        this_df = self.pym_cli.query(this_params).first().df().reset_index()
+        this_df.rename(columns={"Epoch": "timestamp"}, inplace=True)
+        this_df["timestamp"] = this_df["timestamp"].apply(
+            lambda d: TimeHandler.get_string_from_datetime64(d.tz_convert(None))
+        )
+        return this_df
