@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+import time
 from typing import List, Tuple
 
 import numpy as np
@@ -118,13 +119,14 @@ class DailyStockTableManager:
         self.timeframe = timeframe[:2]
 
     def check_data_availability(self, stock_symbol, start_timestamp, end_timestamp):
-        start_timestamp = TimeHandler.get_datetime_from_string(start_timestamp)
-        end_timestamp = TimeHandler.get_datetime_from_string(end_timestamp)
 
         if stock_symbol in self.set_symbols:
             all_dates = list(
                 self.pym_cli.sql(
-                    [f"SELECT Epoch FROM `{stock_symbol}/{self.timeframe}/OHLCV`;"]
+                    [
+                        f"SELECT MIN(Epoch) FROM `{stock_symbol}/{self.timeframe}/OHLCV`;",
+                        f"SELECT MAX(Epoch) FROM `{stock_symbol}/{self.timeframe}/OHLCV`;",
+                    ]
                 )
                 .first()
                 .df()
@@ -214,18 +216,22 @@ class DailyStockTableManager:
         dictStockData = {}
         print("Reading data from database.")
         for individual_symbol in this_list_of_symbols:
-            dictStockData[individual_symbol] = self.get_specific_stock_data(individual_symbol,
-                                                                       start_timestamp,
-                                                                       end_timestamp)
+            dictStockData[individual_symbol] = self.get_specific_stock_data(
+                individual_symbol, start_timestamp, end_timestamp
+            )
         print(
             f"Read complete! Returning dataframe(s) for {len(this_list_of_symbols)} symbols.\n"
         )
         return dictStockData
 
-    def get_specific_stock_data(self, stock_name, start_timestamp, end_timestamp):
+    def get_specific_stock_data(
+        self, stock_name, start_timestamp: datetime, end_timestamp: datetime
+    ):
         int_start_tp, int_end_tp = TimeHandler.get_unix_time_from_string(
-            start_timestamp
-        ), TimeHandler.get_unix_time_from_string(end_timestamp)
+            TimeHandler.get_string_from_datetime(start_timestamp)
+        ), TimeHandler.get_unix_time_from_string(
+            TimeHandler.get_string_from_datetime(end_timestamp)
+        )
 
         this_params = pymkts.Params(
             stock_name, self.timeframe, "OHLCV", int_start_tp, int_end_tp

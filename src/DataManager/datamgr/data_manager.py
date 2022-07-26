@@ -1,3 +1,7 @@
+from datetime import datetime
+import logging
+import sys
+from tracemalloc import start
 from pandas import Index, Timestamp
 from typing import Any, Dict, List, Tuple
 import warnings
@@ -7,6 +11,37 @@ from DataManager.database_layer.tables import DailyStockTableManager
 from DataManager.utils.timehandler import TimeHandler
 from DataManager.assetmgr.asset_manager import Assets
 from DataManager.datamgr.data_extractor import DataExtractor
+
+logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+logger = logging.getLogger()
+
+
+def validate_timestamps(
+    start_timestamp: datetime, end_timestamp: datetime, exchange_name="NYSE"
+) -> Tuple[str, str, List[Any]]:
+    if start_timestamp > end_timestamp:
+        raise ValueError(
+            "DateOutOfRange: start timestamp cannot be later than end timestamp"
+        )
+
+    thisExchange = mcal.get_calendar(exchange_name)
+    valid_dates_for_ex = thisExchange.valid_days(
+        TimeHandler.get_alpaca_string_from_datetime(start_timestamp),
+        TimeHandler.get_alpaca_string_from_datetime(end_timestamp),
+    )
+    new_start, new_end = TimeHandler.get_datetime_from_timestamp(
+        valid_dates_for_ex[0]
+    ), TimeHandler.get_datetime_from_timestamp(valid_dates_for_ex[-1])
+    if new_start != start_timestamp:
+        logger.info(
+            f"NOT A TRADING DAY: Start timestamp has changed from: {start_timestamp} to {new_start}"
+        )
+    if new_end != end_timestamp:
+        logger.info(
+            f"NOT A TRADING DAY: End timestamp has changed from: {end_timestamp} to {new_end}"
+        )
+
+    return new_start, new_end, valid_dates_for_ex
 
 
 class DataManager:
@@ -77,64 +112,37 @@ class DataManager:
     def reset_required_vars(self):
         self._required_symbols_data, self._required_dates = [], dict()
 
-    def validate_timestamps(
-        self, start_timestamp, end_timestamp
-    ) -> Tuple[str, str, List[Any]]:
-        if TimeHandler.get_datetime_from_string(
-            start_timestamp
-        ) > TimeHandler.get_datetime_from_string(end_timestamp):
-            raise ValueError(
-                "DateOutOfRange: start timestamp cannot be later than end timestamp"
-            )
-
-        thisExchange = mcal.get_calendar(self._exchange_name)
-        valid_dates_for_ex = thisExchange.valid_days(
-            TimeHandler.get_alpaca_string_from_string(start_timestamp),
-            TimeHandler.get_alpaca_string_from_string(end_timestamp),
-        )
-        new_start, new_end = TimeHandler.get_string_from_timestamp(
-            valid_dates_for_ex[0]
-        ), TimeHandler.get_string_from_timestamp(valid_dates_for_ex[-1])
-        if new_start != start_timestamp:
-            print(
-                f"NOT A TRADING DAY: Start timestamp has changed from: {start_timestamp} to {new_start}"
-            )
-        if new_end != end_timestamp:
-            print(
-                f"NOT A TRADING DAY: End timestamp has changed from: {end_timestamp} to {new_end}"
-            )
-
-        return new_start, new_end, valid_dates_for_ex
-
     def get_stock_data(
         self,
         start_timestamp,
         end_timestamp,
         api="Alpaca",
         fill_data: int = 3,
-        fetch_data: bool = True
+        fetch_data: bool = True,
     ):
 
         print("Validating Dates...")
-        start_timestamp, end_timestamp, _ = self.validate_timestamps(
+        start_timestamp, end_timestamp, _ = validate_timestamps(
             start_timestamp, end_timestamp
         )
         print("Finished validating date\n")
 
         print("Checking dates availability...")
         for stock in self._basket_of_symbols:
-            self.get_one_stock_data(stock, start_timestamp, end_timestamp)
+            self.calculate_dates_to_extract(stock, start_timestamp, end_timestamp)
         print("Finished checking dates availability!\n")
 
         # No data needs to be fetched
         if len(self._required_dates) == 0 or fetch_data is False:
             print("All data is available locally or fetch_data set to False")
-            self.list_of_symbols = list(set(self._basket_of_symbols) - set(self._required_symbols_data))
+            self.list_of_symbols = list(
+                set(self._basket_of_symbols) - set(self._required_symbols_data)
+            )
             return self._daily_stocks.get_daily_stock_data(
                 self.list_of_symbols, start_timestamp, end_timestamp
             )
 
-        print("Getting data from API.")
+        logger.info("Getting data from API.")
 
         type_data = self.freq_data
 
@@ -238,7 +246,7 @@ class DataManager:
         df.sort_index(inplace=True)
         return df
 
-    def get_one_stock_data(self, stock_symbol, start_timestamp, end_timestamp):
+    def calculate_dates_to_extract(self, stock_symbol, start_timestamp, end_timestamp):
         (
             statusTimestamp,
             req_start,
@@ -250,31 +258,25 @@ class DataManager:
             if req_start:
                 self._required_symbols_data.append(stock_symbol)
                 self._required_dates[stock_symbol] = (
-                    (
-                        TimeHandler.get_alpaca_string_from_string(start_timestamp),
-                        TimeHandler.get_alpaca_string_from_string(
-                            TimeHandler.get_string_from_datetime(req_start)
-                        ),
-                    )
+                    TimeHandler.get_alpaca_string_from_string(start_timestamp),
+                    TimeHandler.get_alpaca_string_from_string(
+                        TimeHandler.get_string_from_datetime(req_start)
+                    ),
                 )
 
             if req_end:
                 self._required_symbols_data.append(stock_symbol)
                 self._required_dates[stock_symbol] = (
-                    (
-                        TimeHandler.get_alpaca_string_from_string(
-                            TimeHandler.get_string_from_datetime(req_end)
-                        ),
-                        TimeHandler.get_alpaca_string_from_string(end_timestamp),
-                    )
+                    TimeHandler.get_alpaca_string_from_string(
+                        TimeHandler.get_string_from_datetime(req_end)
+                    ),
+                    TimeHandler.get_alpaca_string_from_string(end_timestamp),
                 )
         else:
             self._required_symbols_data.append(stock_symbol)
             self._required_dates[stock_symbol] = (
-                (
-                    TimeHandler.get_alpaca_string_from_string(start_timestamp),
-                    TimeHandler.get_alpaca_string_from_string(end_timestamp),
-                )
+                TimeHandler.get_alpaca_string_from_datetime(start_timestamp),
+                TimeHandler.get_alpaca_string_from_datetime(end_timestamp),
             )
 
 
