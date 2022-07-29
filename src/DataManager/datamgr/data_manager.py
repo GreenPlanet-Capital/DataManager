@@ -257,19 +257,15 @@ class DataManager:
             if req_start:
                 self._required_symbols_data.append(stock_symbol)
                 self._required_dates[stock_symbol] = (
-                    TimeHandler.get_alpaca_string_from_string(start_timestamp),
-                    TimeHandler.get_alpaca_string_from_string(
-                        TimeHandler.get_string_from_datetime(req_start)
-                    ),
+                    TimeHandler.get_alpaca_string_from_datetime(start_timestamp),
+                    TimeHandler.get_alpaca_string_from_datetime(req_start)
                 )
 
             if req_end:
                 self._required_symbols_data.append(stock_symbol)
                 self._required_dates[stock_symbol] = (
-                    TimeHandler.get_alpaca_string_from_string(
-                        TimeHandler.get_string_from_datetime(req_end)
-                    ),
-                    TimeHandler.get_alpaca_string_from_string(end_timestamp),
+                    TimeHandler.get_alpaca_string_from_datetime(req_end),
+                    TimeHandler.get_alpaca_string_from_datetime(end_timestamp),
                 )
         else:
             self._required_symbols_data.append(stock_symbol)
