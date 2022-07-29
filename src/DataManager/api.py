@@ -47,7 +47,7 @@ class QuantifyData:
         api: str = "Alpaca",
     ) -> Tuple[List[str], Dict[str, pd.DataFrame]]:
         self._daily_stocks = DailyStockTableManager(timeframe=timeframe)
-        criteria: Dict[str:bool] = {
+        criteria: Dict[str, bool] = {
             "isDelisted": isDelisted,
             "isSuspended": isSuspended,
         }
@@ -67,16 +67,18 @@ class QuantifyData:
             self._basket_of_symbols = (
                 self._assets.asset_table_manager.get_symbols_from_criteria(criteria)
             )
-            logging.info(f"Received {len(self._basket_of_symbols)} symbols from Asset Manager")
+            logging.info(
+                f"Received {len(self._basket_of_symbols)} symbols from Asset Manager"
+            )
 
         if limit:
             if len(self._basket_of_symbols) > limit:
                 self._basket_of_symbols = self._basket_of_symbols[:limit]
             else:
-                logging.warn(
+                logging.warning(
                     "Limit is greater than available symbols for defined criteria"
                 )
-                logging.warn("Using maximum available symbols")
+                logging.warning("Using maximum available symbols")
 
         logger.info("Validating timestamps")
         start_timestamp, end_timestamp, _ = data_manager.validate_timestamps(
@@ -101,7 +103,7 @@ class QuantifyData:
                 set(self._basket_of_symbols) - set(self._required_symbols_data)
             )
             assert len(self.list_of_symbols) > 0
-            return self._daily_stocks.get_daily_stock_data(
+            return self.list_of_symbols, self._daily_stocks.get_daily_stock_data(
                 self.list_of_symbols, start_timestamp, end_timestamp
             )
 
@@ -143,10 +145,11 @@ class QuantifyData:
 if __name__ == "__main__":
     datamgr = QuantifyData()
     symbols, dict_dfs = datamgr.get_data(
-        start_timestamp = datetime(2022, 7, 21),
-        end_timestamp = datetime(2022, 7, 21),
-        exchangeName = "NASDAQ",
-        limit = None,
-        list_of_tickers=['GOOG'],
-        download_data = True
+        start_timestamp=datetime(2022, 7, 21),
+        end_timestamp=datetime(2022, 7, 21),
+        exchangeName="NASDAQ",
+        limit=None,
+        list_of_tickers=["GOOG"],
+        download_data=True,
     )
+    print()

@@ -1,7 +1,6 @@
 from datetime import datetime
 import logging
 import sys
-from tracemalloc import start
 from pandas import Index, Timestamp
 from typing import Any, Dict, List, Tuple
 import warnings
@@ -12,7 +11,7 @@ from DataManager.utils.timehandler import TimeHandler
 from DataManager.assetmgr.asset_manager import Assets
 from DataManager.datamgr.data_extractor import DataExtractor
 
-logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logger = logging.getLogger()
 
 

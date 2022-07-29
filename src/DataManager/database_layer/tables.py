@@ -120,19 +120,20 @@ class DailyStockTableManager:
 
     def check_data_availability(self, stock_symbol, start_timestamp, end_timestamp):
 
+        # TODO - fix this sometime
         if stock_symbol in self.set_symbols:
             all_dates = list(
                 self.pym_cli.sql(
-                    [
-                        f"SELECT MIN(Epoch) FROM `{stock_symbol}/{self.timeframe}/OHLCV`;",
-                        f"SELECT MAX(Epoch) FROM `{stock_symbol}/{self.timeframe}/OHLCV`;",
-                    ]
+                    [f"SELECT Epoch FROM `{stock_symbol}/{self.timeframe}/OHLCV`;"]
                 )
                 .first()
                 .df()
                 .index
             )
         else:
+            return False, start_timestamp, end_timestamp
+
+        if not len(all_dates):
             return False, start_timestamp, end_timestamp
 
         dataAvailableFrom = all_dates[0].to_pydatetime()
@@ -193,6 +194,7 @@ class DailyStockTableManager:
         df_updated["timestamp"] = df_updated["timestamp"].apply(
             lambda d: d.replace(hour=0, minute=0, second=0).value // 10**9
         )
+        df_updated.rename(columns={"timestamp": "Epoch"}, inplace=True)
         dt = np.dtype(
             [
                 ("Epoch", np.int64),

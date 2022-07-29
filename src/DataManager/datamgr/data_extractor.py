@@ -180,7 +180,9 @@ class DataExtractor:
             this_list_dates = list_failed_dates
             empty_symbols = set(list_failed_symbols)
             currentRetries += 1
-            time.sleep(60)  # 1 min between consecutive requests
+
+            if len(list_failed_symbols) != 0:
+                time.sleep(60)  # 1 min between consecutive requests
 
         print(f"{len(valid_tuples)=} ,{len(partial_symbols)=}, {len(empty_symbols)=}")
         partial_symbols.update(empty_symbols)

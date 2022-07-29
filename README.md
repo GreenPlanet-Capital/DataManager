@@ -77,6 +77,10 @@ Deleted <path>/DataManager/tempDir/AssetDB.db
 ...
 ~~~
 
+### Testing
+```shell
+foo@bar:~$ python -m coverage run -m pytest
+```
 
 ## Examples of API Returns
 

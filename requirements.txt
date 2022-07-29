@@ -1,8 +1,6 @@
-pandas
-pytest
-alpaca-trade-api
-pandas_market_calendars
-lxml
-httplib2<0.16.0
-requests
-pymarketstore
+alpaca_trade_api==2.3.0
+numpy==1.23.1
+pandas==1.4.3
+pandas_market_calendars==3.5
+pymarketstore==0.20
+setuptools==61.2.0
