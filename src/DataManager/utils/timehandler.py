@@ -26,6 +26,10 @@ class TimeHandler:
         return np.datetime64(inputString)
 
     @staticmethod
+    def get_datetime_from_unix_time(float: np.float32):
+        return datetime.fromtimestamp(float)
+
+    @staticmethod
     def get_unix_time_from_string(inputString: str) -> int:
         return TimeHandler.get_datetime64_from_string(inputString).astype("int64")
 

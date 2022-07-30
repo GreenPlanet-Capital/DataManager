@@ -5,6 +5,7 @@ from typing import List, Tuple
 import numpy as np
 import pandas as pd
 import pymarketstore as pymkts
+from pymarketstore.results import QueryReply
 from pandas import DataFrame
 
 from DataManager.database_layer.database import DatabaseManager
@@ -120,24 +121,23 @@ class DailyStockTableManager:
 
     def check_data_availability(self, stock_symbol, start_timestamp, end_timestamp):
 
-        # TODO - fix this sometime
         if stock_symbol in self.set_symbols:
-            all_dates = list(
-                self.pym_cli.sql(
-                    [f"SELECT Epoch FROM `{stock_symbol}/{self.timeframe}/OHLCV`;"]
-                )
-                .first()
-                .df()
-                .index
+            sql_results: QueryReply = self.pym_cli.sql(
+                [
+                    f"SELECT MIN(Epoch) FROM `{stock_symbol}/{self.timeframe}/OHLCV`;",
+                    f"SELECT MAX(Epoch) FROM `{stock_symbol}/{self.timeframe}/OHLCV`;",
+                ]
             )
+            unix_start = sql_results.results[0].first().df()["Min"].values[0]
+            unix_end = sql_results.results[1].first().df()["Max"].values[0]
         else:
             return False, start_timestamp, end_timestamp
 
-        if not len(all_dates):
-            return False, start_timestamp, end_timestamp
+        # if not len(all_dates):
+        # return False, start_timestamp, end_timestamp
 
-        dataAvailableFrom = all_dates[0].to_pydatetime()
-        dataAvailableTo = all_dates[-1].to_pydatetime()
+        dataAvailableFrom = TimeHandler.get_datetime_from_unix_time(unix_start)
+        dataAvailableTo = TimeHandler.get_datetime_from_unix_time(unix_end)
 
         if (start_timestamp.date() < dataAvailableFrom.date()) and (
             end_timestamp.date() < dataAvailableFrom.date()
