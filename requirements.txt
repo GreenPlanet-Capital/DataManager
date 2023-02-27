@@ -6,3 +6,4 @@ lxml
 httplib2<0.16.0
 requests
 pymarketstore
+typer==0.7.0
