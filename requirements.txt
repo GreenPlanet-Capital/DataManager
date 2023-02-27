@@ -9,3 +9,4 @@ httplib2<0.16.0
 pydrive
 requests
 gdown
+typer==0.7.0
