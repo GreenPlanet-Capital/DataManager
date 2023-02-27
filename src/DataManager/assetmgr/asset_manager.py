@@ -16,40 +16,46 @@ class Assets:
         self.assetExtraction = AssetExtractor()
 
     def update_db_alpaca_assets(self):
-        listAlpAssets = self.assetExtraction.getAllAlpacaAssets()
-        for individualAsset in listAlpAssets:
-            asset_data = {
-                "stockSymbol": individualAsset["symbol"],
-                "companyName": individualAsset["name"],
-                "exchangeName": individualAsset["exchange"],
-                "isDelisted": individualAsset["status"] != "active",
-                "isShortable": individualAsset["shortable"],
-                "isSuspended": not individualAsset["tradable"],
-            }
-
-            self.insert_assets_into_db(asset_data)
+        listAlpAssets = list(
+            map(
+                lambda individualAsset: {
+                    "stockSymbol": individualAsset["symbol"],
+                    "companyName": individualAsset["name"],
+                    "exchangeName": individualAsset["exchange"],
+                    "isDelisted": individualAsset["status"] != "active",
+                    "isShortable": individualAsset["shortable"],
+                    "isSuspended": not individualAsset["tradable"],
+                    "dateLastUpdated": TimeHandler.get_string_from_datetime(
+                        datetime.now(timezone.utc)
+                    ),
+                },
+                self.assetExtraction.getAllAlpacaAssets(),
+            )
+        )
+        self.asset_table_manager.insert_assets(listAlpAssets)
 
     def update_index_assets(self):
-
-        # Reset all index values
-        list_all_symbols = self.asset_table_manager.get_symbols_from_criteria(None)
-        for each_symbol in list_all_symbols:
-            self.asset_table_manager.update_asset(
-                {"stockSymbol": each_symbol, "index_name": None}
-            )
-
-        dict_index_stocks = {
-            "snp": read_html(
-                "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-            )[0]["Symbol"].values.tolist()
-        }
-
-        for index_name, list_stocks in dict_index_stocks.items():
-            for one_stock in list_stocks:
-                if self.asset_table_manager.get_one_asset(one_stock):
-                    self.asset_table_manager.update_asset(
-                        {"stockSymbol": one_stock, "index_name": index_name}
-                    )
+        # TODO optimize this
+        ...
+        # # Reset all index values
+        # list_all_symbols = self.asset_table_manager.get_symbols_from_criteria(None)
+        # for each_symbol in list_all_symbols:
+        #     self.asset_table_manager.update_asset(
+        #         {"stockSymbol": each_symbol, "index_name": None}
+        #     )
+        #
+        # dict_index_stocks = {
+        #     "snp": read_html(
+        #         "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+        #     )[0]["Symbol"].values.tolist()
+        # }
+        #
+        # for index_name, list_stocks in dict_index_stocks.items():
+        #     for one_stock in list_stocks:
+        #         if self.asset_table_manager.get_one_asset(one_stock):
+        #             self.asset_table_manager.update_asset(
+        #                 {"stockSymbol": one_stock, "index_name": index_name}
+        #             )
 
     def update_all_dbs(self):
         print("Updating Assets Database...")
@@ -62,22 +68,10 @@ class Assets:
         self.update_index_assets()
         print("Update completed\n")
 
-    def insert_assets_into_db(self, asset_data):
-        asset_data["dateLastUpdated"] = TimeHandler.get_string_from_datetime(
-            datetime.now(timezone.utc)
-        )
-        returned_Asset = self.asset_table_manager.get_one_asset(
-            asset_data["stockSymbol"]
-        )
-        if not returned_Asset:
-            self.asset_table_manager.insert_asset(asset_data)
-        else:
-            # TODO Handle for single stock having multiple exchangeNames
-            self.asset_table_manager.update_asset(asset_data)
-
 
 if __name__ == "__main__":
     mgr = Assets("AssetDB.db")
     mgr.update_db_alpaca_assets()
+    mgr.update_index_assets()
     a = mgr.asset_table_manager.get_assets_list()
     print()

@@ -112,9 +112,8 @@ class DataManager:
         end_timestamp,
         api="Alpaca",
         fill_data: int = 3,
-        fetch_data: bool = True
+        fetch_data: bool = True,
     ):
-
         print("Validating Dates...")
         start_timestamp, end_timestamp, _ = self.validate_timestamps(
             start_timestamp, end_timestamp
@@ -129,7 +128,9 @@ class DataManager:
         # No data needs to be fetched
         if len(self._required_dates) == 0 or fetch_data is False:
             print("All data is available locally or fetch_data set to False")
-            self.list_of_symbols = list(set(self._basket_of_symbols) - set(self._required_symbols_data))
+            self.list_of_symbols = list(
+                set(self._basket_of_symbols) - set(self._required_symbols_data)
+            )
             return self._daily_stocks.get_daily_stock_data(
                 self.list_of_symbols, start_timestamp, end_timestamp
             )
@@ -250,31 +251,25 @@ class DataManager:
             if req_start:
                 self._required_symbols_data.append(stock_symbol)
                 self._required_dates[stock_symbol] = (
-                    (
-                        TimeHandler.get_alpaca_string_from_string(start_timestamp),
-                        TimeHandler.get_alpaca_string_from_string(
-                            TimeHandler.get_string_from_datetime(req_start)
-                        ),
-                    )
+                    TimeHandler.get_alpaca_string_from_string(start_timestamp),
+                    TimeHandler.get_alpaca_string_from_string(
+                        TimeHandler.get_string_from_datetime(req_start)
+                    ),
                 )
 
             if req_end:
                 self._required_symbols_data.append(stock_symbol)
                 self._required_dates[stock_symbol] = (
-                    (
-                        TimeHandler.get_alpaca_string_from_string(
-                            TimeHandler.get_string_from_datetime(req_end)
-                        ),
-                        TimeHandler.get_alpaca_string_from_string(end_timestamp),
-                    )
+                    TimeHandler.get_alpaca_string_from_string(
+                        TimeHandler.get_string_from_datetime(req_end)
+                    ),
+                    TimeHandler.get_alpaca_string_from_string(end_timestamp),
                 )
         else:
             self._required_symbols_data.append(stock_symbol)
             self._required_dates[stock_symbol] = (
-                (
-                    TimeHandler.get_alpaca_string_from_string(start_timestamp),
-                    TimeHandler.get_alpaca_string_from_string(end_timestamp),
-                )
+                TimeHandler.get_alpaca_string_from_string(start_timestamp),
+                TimeHandler.get_alpaca_string_from_string(end_timestamp),
             )
 
 

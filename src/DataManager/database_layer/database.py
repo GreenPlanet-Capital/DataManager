@@ -1,5 +1,5 @@
 import sqlite3
-
+import numpy as np
 from DataManager.utils.timehandler import TimeHandler
 
 
@@ -10,10 +10,13 @@ class DatabaseManager:
     def __del__(self):
         self.connection.close()
 
-    def _execute(self, statement, values=None):
+    def _execute(self, statement, values=None, many=False):
         with self.connection:
             cursor = self.connection.cursor()
-            cursor.execute(statement, values or [])
+            if many:
+                cursor.executemany(statement, values or [])
+            else:
+                cursor.execute(statement, values or [])
             return cursor
 
     def create_table(self, table_name, columns):
@@ -42,6 +45,35 @@ class DatabaseManager:
             VALUES ({placeholders});
             """,
             column_values,
+        )
+
+    def add(self, table_name, data):
+        placeholders = ", ".join("?" * len(data))
+        column_names = ", ".join(data.keys())
+        column_values = tuple(data.values())
+
+        self._execute(
+            f"""
+            INSERT INTO "{table_name}"
+            ({column_names})
+            VALUES ({placeholders});
+            """,
+            column_values,
+        )
+
+    def add_many(self, table_name, data):
+        placeholders = ", ".join("?" * len(data[0]))
+        column_names = ", ".join(data[0].keys())
+        values = [tuple(d.values()) for d in data]
+
+        self._execute(
+            f"""
+            INSERT OR REPLACE INTO "{table_name}"
+            ({column_names})
+            VALUES ({placeholders});
+            """,
+            values,
+            many=True,
         )
 
     def delete(self, table_name, criteria):
@@ -141,6 +173,21 @@ class DatabaseManager:
             values,
         )
 
+    def update_many(self, table_name, criteria, data):
+        update_placeholders = [f"{column} = ?" for column in criteria.keys()]
+        update_criteria = " AND ".join(update_placeholders)
+        values = [tuple(d.values()) + tuple(criteria.values()) for d in data]
+
+        self._execute(
+            f"""
+            UPDATE "{table_name}"
+            SET {update_placeholders}
+            WHERE {update_criteria};
+            """,
+            values,
+            many=True,
+        )
+
     def insert_table_into_another_db(self, attach_db_path, table_name):
         query = f"""
                 ATTACH DATABASE '{attach_db_path}' AS other;
@@ -163,7 +210,6 @@ class DatabaseManager:
         self._execute(query)
 
         query = f"SELECT * from main.{main_table_name};"
-        final_start, final_end = "", ""
 
         for ticker_, start_timestamp, end_timestamp, _ in self._execute(
             query

@@ -1,6 +1,6 @@
 from datetime import timedelta
 from typing import List, Tuple
-
+import warnings
 import numpy as np
 import pandas as pd
 import pymarketstore as pymkts
@@ -32,8 +32,8 @@ class TableManager:
             if table not in exclude:
                 self.db.drop_table(table_name=table)
 
-    def insert_asset(self, asset_data):
-        self.db.add(self.table_name, asset_data)
+    def insert_assets(self, asset_data):
+        self.db.add_many(self.table_name, asset_data)
 
     def update_asset(self, asset_data):
         self.db.update(
@@ -214,23 +214,25 @@ class DailyStockTableManager:
         dictStockData = {}
         print("Reading data from database.")
         for individual_symbol in this_list_of_symbols:
-            dictStockData[individual_symbol] = self.get_specific_stock_data(individual_symbol,
-                                                                       start_timestamp,
-                                                                       end_timestamp)
+            dictStockData[individual_symbol] = self.get_specific_stock_data(
+                individual_symbol, start_timestamp, end_timestamp
+            )
         print(
             f"Read complete! Returning dataframe(s) for {len(this_list_of_symbols)} symbols.\n"
         )
         return dictStockData
 
     def get_specific_stock_data(self, stock_name, start_timestamp, end_timestamp):
-        int_start_tp, int_end_tp = TimeHandler.get_unix_time_from_string(
-            start_timestamp
-        ), TimeHandler.get_unix_time_from_string(end_timestamp)
-
         this_params = pymkts.Params(
-            stock_name, self.timeframe, "OHLCV", int_start_tp, int_end_tp
+            stock_name, self.timeframe, "OHLCV", start_timestamp, end_timestamp
         )
-        this_df = self.pym_cli.query(this_params).first().df().reset_index()
+
+        try:
+            this_df = self.pym_cli.query(this_params).first().df().reset_index()
+        except Exception as e:
+            warnings.warn(f"Error encountered: {e}")
+            return pd.DataFrame()
+
         this_df.rename(columns={"Epoch": "timestamp"}, inplace=True)
         this_df["timestamp"] = this_df["timestamp"].apply(
             lambda d: TimeHandler.get_string_from_datetime64(d.tz_convert(None))
