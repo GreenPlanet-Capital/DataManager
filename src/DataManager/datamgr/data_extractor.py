@@ -140,6 +140,8 @@ class DataExtractor:
         this_list_symbols = list_symbols
         this_list_dates = list_dates
 
+        assert len(this_list_symbols) == len(this_list_dates), "Length mismatch between symbols and dates"
+
         while (
             currentRetries <= maxRetries
             and len(valid_tuples) != len(list_symbols)

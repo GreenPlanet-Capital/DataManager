@@ -52,13 +52,13 @@ class DataManager:
             criteria["isSuspended"] = False
 
         if "exchangeName" not in criteria:
-            self._basket_of_symbols = (
+            self._basket_of_symbols = set(
                 self._assets.asset_table_manager.get_symbols_from_criteria(criteria)
             )
             self._exchange_name = "NYSE"
         else:
             self._exchange_name = criteria["exchangeName"]
-            self._basket_of_symbols = (
+            self._basket_of_symbols = set(
                 self._assets.asset_table_manager.get_symbols_from_criteria(criteria)
             )
 
@@ -248,7 +248,12 @@ class DataManager:
             stock_symbol, start_timestamp, end_timestamp
         )
         if statusTimestamp:
-            if req_start:
+
+            if req_start and req_end:
+                # TODO: figure this out sometime
+                return
+
+            elif req_start:
                 self._required_symbols_data.append(stock_symbol)
                 self._required_dates[stock_symbol] = (
                     TimeHandler.get_alpaca_string_from_string(start_timestamp),
@@ -257,7 +262,7 @@ class DataManager:
                     ),
                 )
 
-            if req_end:
+            elif req_end:
                 self._required_symbols_data.append(stock_symbol)
                 self._required_dates[stock_symbol] = (
                     TimeHandler.get_alpaca_string_from_string(
@@ -265,6 +270,7 @@ class DataManager:
                     ),
                     TimeHandler.get_alpaca_string_from_string(end_timestamp),
                 )
+
         else:
             self._required_symbols_data.append(stock_symbol)
             self._required_dates[stock_symbol] = (
