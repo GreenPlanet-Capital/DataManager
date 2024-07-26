@@ -250,8 +250,15 @@ class DataManager:
         if statusTimestamp:
 
             if req_start and req_end:
-                # TODO: figure this out sometime
-                return
+                self._required_symbols_data.append(stock_symbol)
+                self._required_dates[stock_symbol] = (
+                    TimeHandler.get_alpaca_string_from_string(
+                        TimeHandler.get_string_from_datetime(req_start)
+                    ),
+                    TimeHandler.get_alpaca_string_from_string(
+                        TimeHandler.get_string_from_datetime(req_end)
+                    ),
+                )
 
             elif req_start:
                 self._required_symbols_data.append(stock_symbol)
