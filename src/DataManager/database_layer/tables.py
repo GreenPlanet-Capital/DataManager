@@ -209,7 +209,7 @@ class DailyStockTableManager:
         )
 
     def get_daily_stock_data(
-        self, this_list_of_symbols, start_timestamp, end_timestamp
+        self, this_list_of_symbols, start_timestamp, end_timestamp, ensure_full_data
     ):
         dictStockData = {}
         print("Reading data from database.")
@@ -221,19 +221,20 @@ class DailyStockTableManager:
             f"Read complete! Returning dataframe(s) for {len(this_list_of_symbols)} symbols."
         )
 
-        # Remove dataframes with less data than the timeframe
-        timeframes = [len(df) for df in dictStockData.values()]
-        max_timeframe = max(timeframes)
+        if ensure_full_data:
+            # Remove dataframes with less data than the timeframe
+            timeframes = [len(df) for df in dictStockData.values()]
+            max_timeframe = max(timeframes)
 
-        for symbol in list(dictStockData.keys()):
-            df = dictStockData[symbol]
-            if len(df) < max_timeframe:
-                dictStockData.pop(symbol)
-                this_list_of_symbols.remove(symbol)  # Hack: fix sometime
+            for symbol in list(dictStockData.keys()):
+                df = dictStockData[symbol]
+                if len(df) < max_timeframe:
+                    dictStockData.pop(symbol)
+                    this_list_of_symbols.remove(symbol)  # Hack: fix sometime
 
-        print(
-            f"Dataframes with less than {max_timeframe} entries removed. {len(this_list_of_symbols)} symbols remaining.\n"
-        )
+            print(
+                f"Dataframes with less than {max_timeframe} entries removed. {len(this_list_of_symbols)} symbols remaining.\n"
+            )
 
         return dictStockData
 

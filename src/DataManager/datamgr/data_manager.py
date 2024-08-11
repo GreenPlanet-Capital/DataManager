@@ -113,6 +113,7 @@ class DataManager:
         api="Alpaca",
         fill_data: int = 3,
         fetch_data: bool = True,
+        ensure_full_data: bool = True,
     ):
         print("Validating Dates...")
         start_timestamp, end_timestamp, _ = self.validate_timestamps(
@@ -132,7 +133,7 @@ class DataManager:
                 set(self._basket_of_symbols) - set(self._required_symbols_data)
             )
             return self._daily_stocks.get_daily_stock_data(
-                self.list_of_symbols, start_timestamp, end_timestamp
+                self.list_of_symbols, start_timestamp, end_timestamp, ensure_full_data
             )
 
         print("Getting data from API.")
@@ -166,7 +167,7 @@ class DataManager:
             set(self._basket_of_symbols).difference(set(partial_list_symbols))
         )
         return self._daily_stocks.get_daily_stock_data(
-            self.list_of_symbols, start_timestamp, end_timestamp
+            self.list_of_symbols, start_timestamp, end_timestamp, ensure_full_data
         )
 
     def fill_list_tuples(self, list_tuples, fill_val, dict_of_req_dates):
