@@ -191,22 +191,17 @@ class DailyStockTableManager:
         df_updated["timestamp"] = df_updated["timestamp"].apply(
             lambda d: d.replace(hour=0, minute=0, second=0).value // 10**9
         )
-        dt = np.dtype(
-            [
-                ("Epoch", np.int64),
-                ("open", np.float64),
-                ("high", np.float64),
-                ("low", np.float64),
-                ("close", np.float64),
-                ("volume", np.int64),
-                ("trade_count", np.int64),
-                ("vmap", np.float64),
-            ]
-        )
-        data = np.array([tuple(v) for v in df_updated.values.tolist()], dtype=dt)
-        self.pym_cli.write(
+        df_updated = df_updated.rename(columns={"timestamp": "Epoch", "vwap": "vmap"})
+
+        records = df_updated.to_records(index=False)
+        data = np.array(records, dtype=records.dtype.descr)
+
+        response = self.pym_cli.write(
             data, f"{stock_symbol}/{self.timeframe}/OHLCV", isvariablelength=True
         )
+        assert (
+            response is not None and response["responses"] is None
+        ), "Error in updating data in database."
 
     def get_daily_stock_data(
         self, this_list_of_symbols, start_timestamp, end_timestamp, ensure_full_data
