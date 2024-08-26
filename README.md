@@ -77,6 +77,14 @@ Deleted <path>/DataManager/tempDir/AssetDB.db
 ...
 ~~~
 
+### Setup Options DB
+
+```bash
+docker buildx build -t post-no-preference-options-sql-server -f post-no-preference-options.dockerfile .
+mkdir -p $HOME/.dolt/dbs
+docker run --mount type=bind,source=$HOME/.dolt/dbs,target=/dolthub-dbs -p 6000:6000 post-no-preference-options-sql-server:latest
+```
+
 
 ## Examples of API Returns
 

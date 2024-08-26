@@ -64,7 +64,7 @@ class DataManager:
 
         if limit:
             if len(self._basket_of_symbols) > limit:
-                self._basket_of_symbols = self._basket_of_symbols[:limit]
+                self._basket_of_symbols = set(list(self._basket_of_symbols)[:limit])
             else:
                 warnings.warn(
                     "Limit is greater than available symbols for defined criteria"

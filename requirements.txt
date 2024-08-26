@@ -23,3 +23,5 @@ tomli==2.0.1
 toolz==0.12.0
 typer==0.7.0
 urllib3==1.26.14
+mysql==0.0.3
+mysql-connector-python==9.0.0
