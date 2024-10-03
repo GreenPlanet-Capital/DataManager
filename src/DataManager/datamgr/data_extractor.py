@@ -187,6 +187,9 @@ class DataExtractor:
         print(f"{len(valid_tuples)=} ,{len(partial_symbols)=}, {len(empty_symbols)=}")
         partial_symbols.update(empty_symbols)
         return valid_tuples, list(partial_symbols)
+    
+    def getListLiveAlpaca(self, listSymbols) -> Dict[str, dict]:
+        return self.AlpacaAPI.get_latest_bars(listSymbols)
 
     def getListHistoricalAlpaca(
         self,
