@@ -1,10 +1,11 @@
 from datetime import timedelta
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 import warnings
 import numpy as np
 import pandas as pd
 import pymarketstore as pymkts
 from pandas import DataFrame
+from collections import Counter
 
 from DataManager.database_layer.database import DatabaseManager
 from DataManager.utils.conversions import Conversions
@@ -204,7 +205,12 @@ class DailyStockTableManager:
         ), "Error in updating data in database."
 
     def get_daily_stock_data(
-        self, this_list_of_symbols, start_timestamp, end_timestamp, ensure_full_data
+        self,
+        this_list_of_symbols,
+        start_timestamp,
+        end_timestamp,
+        ensure_full_data,
+        ensure_full_date_strat: str = "mode",
     ):
         dictStockData = {}
         print("Reading data from database.")
@@ -217,18 +223,8 @@ class DailyStockTableManager:
         )
 
         if ensure_full_data:
-            # Remove dataframes with less data than the timeframe
-            timeframes = [len(df) for df in dictStockData.values()]
-            max_timeframe = max(timeframes)
-
-            for symbol in list(dictStockData.keys()):
-                df = dictStockData[symbol]
-                if len(df) < max_timeframe:
-                    dictStockData.pop(symbol)
-                    this_list_of_symbols.remove(symbol)  # Hack: fix sometime
-
-            print(
-                f"Dataframes with less than {max_timeframe} entries removed. {len(this_list_of_symbols)} symbols remaining.\n"
+            self.full_data_strat(
+                dictStockData, this_list_of_symbols, ensure_full_date_strat
             )
 
         return dictStockData
@@ -249,3 +245,40 @@ class DailyStockTableManager:
             lambda d: TimeHandler.get_string_from_datetime64(d.tz_convert(None))
         )
         return this_df
+
+    def full_data_strat(
+        self, dt_df: Dict[str, pd.DataFrame], list_symbols: List[str], strat: str
+    ):
+        timeframes = [len(df) for df in dt_df.values()]
+        cnts = Counter(timeframes)
+
+        if strat == "max":
+            # Remove dataframes with less data than the timeframe
+            max_timeframe = max(timeframes)
+
+            for symbol in list(dt_df.keys()):
+                df = dt_df[symbol]
+                if len(df) < max_timeframe:
+                    dt_df.pop(symbol)
+                    list_symbols.remove(symbol)  # Hack: fix sometime
+
+            print(
+                f"Dataframes with less than {max_timeframe} entries removed. {len(list_symbols)} symbols remaining.\n"
+            )
+        elif strat == "mode":
+            # Remove dataframes with less data than the mode of the timeframes
+            mode_timeframe = cnts.most_common(1)[0][0]
+
+            for symbol in list(dt_df.keys()):
+                df = dt_df[symbol]
+                if len(df) != mode_timeframe:
+                    dt_df.pop(symbol)
+                    list_symbols.remove(symbol)
+
+            print(
+                f"Dataframes with != {mode_timeframe} entries removed. {len(list_symbols)} symbols remaining.\n"
+            )
+        else:
+            raise ValueError(
+                "Invalid strategy for ensuring full data. Should be 'max' or 'mode'."
+            )
