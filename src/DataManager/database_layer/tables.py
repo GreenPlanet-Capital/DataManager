@@ -114,7 +114,7 @@ class AssetTableManager(TableManager):
 
 class DailyStockTableManager:
     def __init__(self, timeframe: str):
-        self.pym_cli = pymkts.Client()
+        self.pym_cli = pymkts.Client(endpoint="http://alpaca-marketstore:5993/rpc")
         self.set_symbols = set(self.pym_cli.list_symbols())
         self.timeframe = timeframe[:2]
 
