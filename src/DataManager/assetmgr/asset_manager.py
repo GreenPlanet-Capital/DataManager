@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from DataManager.database_layer.tables import AssetTableManager
 from DataManager.utils.timehandler import TimeHandler
 from DataManager.core import setEnv, DATAMGR_ABS_PATH
-from pandas import read_html
 
 
 class Assets:
@@ -34,29 +33,6 @@ class Assets:
         )
         self.asset_table_manager.insert_assets(listAlpAssets)
 
-    def update_index_assets(self):
-        # TODO optimize this
-        ...
-        # # Reset all index values
-        # list_all_symbols = self.asset_table_manager.get_symbols_from_criteria(None)
-        # for each_symbol in list_all_symbols:
-        #     self.asset_table_manager.update_asset(
-        #         {"stockSymbol": each_symbol, "index_name": None}
-        #     )
-        #
-        # dict_index_stocks = {
-        #     "snp": read_html(
-        #         "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-        #     )[0]["Symbol"].values.tolist()
-        # }
-        #
-        # for index_name, list_stocks in dict_index_stocks.items():
-        #     for one_stock in list_stocks:
-        #         if self.asset_table_manager.get_one_asset(one_stock):
-        #             self.asset_table_manager.update_asset(
-        #                 {"stockSymbol": one_stock, "index_name": index_name}
-        #             )
-
     def update_all_dbs(self):
         print("Updating Assets Database...")
         list_of_update_methods = [
@@ -64,9 +40,6 @@ class Assets:
         ]
         for update_method in list_of_update_methods:
             getattr(self, update_method)()
-        print("Updating index columns")
-        self.update_index_assets()
-        print("Update completed\n")
 
 
 if __name__ == "__main__":
