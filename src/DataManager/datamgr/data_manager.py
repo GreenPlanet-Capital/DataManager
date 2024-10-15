@@ -140,6 +140,7 @@ class DataManager:
 
         type_data = self.freq_data
 
+        # TODO: pass in max retries
         list_tuples, partial_list_symbols = getattr(
             self._extractor, f"getMultipleListHistorical{api}"
         )(
